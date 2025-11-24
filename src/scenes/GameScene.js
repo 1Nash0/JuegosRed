@@ -19,9 +19,21 @@ export class GameScene extends Phaser.Scene {
         this.processor = new CommandProcessor();
     }
 
-    create() {
-        this.add.rectangle(400, 300, 800, 600, 0x1a1a2e);
+    preload() {
+    this.load.image('fondo', 'assets/Bocetos/Gameplay.png'); // fondo del juego
+    this.load.image('Martillo', 'assets/Martillo_provisional.png'); // fondo del juego
 
+}
+
+    create() {
+        this.add.rectangle(500, 300, 1000, 600, 0x1a1a2e);
+
+        const bg = this.add.image(0, 0, 'fondo').setOrigin(0, 0);  // fondo del juego
+        bg.setDisplaySize(this.scale.width, this.scale.height);
+
+        
+        this.load.image('Martillo', 'assets/Martillo_provisional.png');
+        this.martillo = new Pong(this, 400, 300);
         // Center discontinued line
         for (let i = 0; i < 12; i++) {
             this.add.rectangle(400, i * 50 + 25, 10, 30, 0x444444);

@@ -1,24 +1,17 @@
-export class Pong {
+export class Pong extends Phaser.GameObjects.Image{
 
      constructor(scene, id, x, y) {
-        this.id = id;
-        this.scene = scene;
-        this.score = 0;
+        super(scene, x, y, 'martillo');
+        this.setOrigin(0.5);
+       
+        // Añadir al scene
+        scene.add.existing(this);
 
-        this.baseWidth = 20;
-        this.baseHeight = 100;
-        this.baseSpeed = 300;
-
-        const graphics = this.scene.add.graphics();
-        graphics.fillStyle(0x00ff00);
-        graphics.fillRect(0, 0, this.baseWidth, this.baseHeight);
-        graphics.generateTexture(`pong-${id}`, this.baseWidth, this.baseHeight);
-        graphics.destroy();
-
-        this.sprite = this.scene.physics.add.sprite(x, y, `pong-${id}`);
-        this.sprite.setImmovable(true);
-        this.sprite.setCollideWorldBounds(true);
-        this.sprite.body.allowGravity = false;
+        // El martillo "escucha" al ratón
+        scene.input.on('pointermove', (pointer) => {
+            this.x = pointer.x;
+            this.y = pointer.y;
+        });
     }
 
 }
