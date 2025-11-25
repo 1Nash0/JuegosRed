@@ -24,6 +24,7 @@ export class GameScene extends Phaser.Scene {
     preload() {
     this.load.image('fondo', 'assets/Bocetos/Gameplay.png'); // fondo del juego
     this.load.image('Martillo', 'assets/Martillo_provisional.png'); // fondo del juego
+    this.load.image('topo', 'assets/bojack.png'); // fondo del juego
 
 }
 
@@ -34,7 +35,7 @@ export class GameScene extends Phaser.Scene {
         bg.setDisplaySize(this.scale.width, this.scale.height);
 
         
-        this.load.image('Martillo', 'assets/Martillo_provisional.png');
+    
         this.martillo = new Pom(this,400, 300);
 
         
@@ -162,6 +163,7 @@ export class GameScene extends Phaser.Scene {
             this.scene.start('MenuScene');
         });
     }
+    
 
     resetBall() {
         this.ball.setVelocity(0, 0);
