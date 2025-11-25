@@ -1,4 +1,4 @@
-export class Ping {
+export class Pin {
 
      constructor(scene, id, x, y) {
         this.id = id;

@@ -1,4 +1,4 @@
-export class Pong extends Phaser.GameObjects.Image{
+export class Pom extends Phaser.GameObjects.Image{
 
      constructor(scene, id, x, y) {
         super(scene, x, y, 'martillo');

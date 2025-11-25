@@ -1,8 +1,10 @@
 import Phaser from 'phaser';
-import { Pong } from '../entities/Pong';
+import { Paddle } from '../entities/Paddle';
+import { Pom } from '../entities/Pom';
 import { CommandProcessor } from '../commands/CommandProcessor';
 import { MovePaddleCommand } from '../commands/MovePaddleCommand';
 import { PauseGameCommand } from '../commands/PuaseGameCommand';
+//import { Collision } from 'matter';
 
 export class GameScene extends Phaser.Scene {
 
@@ -33,7 +35,13 @@ export class GameScene extends Phaser.Scene {
 
         
         this.load.image('Martillo', 'assets/Martillo_provisional.png');
-        this.martillo = new Pong(this, 400, 300);
+        this.martillo = new Pom(this,400, 300);
+
+        
+        
+        
+        
+
         // Center discontinued line
         for (let i = 0; i < 12; i++) {
             this.add.rectangle(400, i * 50 + 25, 10, 30, 0x444444);
@@ -42,17 +50,30 @@ export class GameScene extends Phaser.Scene {
         // Score texts
         this.scoreLeft = this.add.text(100, 50, '0', {
             fontSize: '48px',
-            color: '#00ff00'
+            color: '#000000ff'
         });
 
         this.rightScore = this.add.text(700, 50, '0', {
             fontSize: '48px',
-            color: '#00ff00'
+            color: '#000000ff'
         });
 
         this.createBounds();
         this.createBall();
         this.launchBall();
+
+        this.ball.setInteractive({ useHandCursor: true });
+        this.ball.on('pointerdown', () => {
+            if (this.isPaused) return;
+            const player1 = this.players.get('player1');
+            if (player1) {
+                player1.score += 1;
+                this.scoreLeft.setText(player1.score.toString());
+            }
+        });
+
+
+
 
         this.physics.add.overlap(this.ball, this.leftGoal, this.scoreRightGoal, null, this);
         this.physics.add.overlap(this.ball, this.rightGoal, this.scoreLeftGoal, null, this);
@@ -66,8 +87,8 @@ export class GameScene extends Phaser.Scene {
     }
 
     setUpPlayers() {
-        const leftPaddle = new Pong(this, 'player1', 50, 300);
-        const rightPaddle = new Pong(this, 'player2', 750, 300); 
+        const leftPaddle = new Paddle(this, 'player1', 50, 300);
+        const rightPaddle = new Paddle(this, 'player2', 750, 300); 
         
         this.players.set('player1', leftPaddle);
         this.players.set('player2', rightPaddle);
@@ -208,6 +229,8 @@ export class GameScene extends Phaser.Scene {
     }
 
     update() {
+
+        this.colision = false;
 
         if (this.escKey.isDown && !this.escWasDown) {
             this.togglePause();
