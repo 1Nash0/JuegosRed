@@ -17,12 +17,27 @@ export class GameScene extends Phaser.Scene {
     }
 
     preload() {
+
+        // IMÁGENES
         this.load.image('fondo', 'assets/Bocetos/Gameplay.png');
         this.load.image('Martillo', 'assets/Martillo_provisional.png');
         this.load.image('bojack', 'assets/bojack.png');
+
+        // SONIDOS
+        this.load.audio('Sonido_martillo', 'assets/Sonidos para_red/Martillo_juez.mp3');
+        this.load.audio('Musica_nivel', 'assets/Sonidos para_red/Hydrogen.mp3');
+        this.load.audio('Sonido castor', 'assets/Sonidos para_red/Sonido castor.mp3');
+        this.load.audio('Golpe', 'assets/Sonidos para_red/Golpe.mp3');
+        this.load.audio('Fin_partida', 'assets/Sonidos para_red/Miami.mp3');
+   
     }
 
     create() {
+
+        // SONIDOS
+        this.sound.add('Musica_nivel').play({ loop: true, volume: 0.5 });
+
+
         this.add.rectangle(500, 300, 1000, 600, 0x1a1a2e);
 
         const bg = this.add.image(0, 0, 'fondo').setOrigin(0, 0);
@@ -61,6 +76,7 @@ export class GameScene extends Phaser.Scene {
             if (!this.topo.sprite.getBounds().contains(pointer.x, pointer.y)) {
                 this.puntosPlayer2 += 1;
                 this.scorePlayer2.setText(`Jugador 2: ${this.puntosPlayer2}`);
+                this.sound.play('Sonido_martillo');
             }
         });
 
@@ -100,6 +116,10 @@ export class GameScene extends Phaser.Scene {
                 this.puntosPlayer1 += 1;
                 this.scorePlayer1.setText(`Jugador 1: ${this.puntosPlayer1}`);
                 this.topo.hide();
+                this.sound.play('Golpe');
+                this.sound.play('Sonido castor');
+                // Temblor de pantalla
+                this.cameras.main.shake(200, 0.01);
             }
         });
 
@@ -126,6 +146,8 @@ export class GameScene extends Phaser.Scene {
     // Termina la partida, muestra ganador y bloquea input
     endRound() {
         this.isGameOver = true;
+        this.sound.stopAll();
+        this.sound.play('Fin_partida', { volume: 0.5 });
 
         // Detener timers
         if (this.topoTimer) this.topoTimer.remove(false);
@@ -146,7 +168,7 @@ export class GameScene extends Phaser.Scene {
         }
 
         // Mostrar resultado en pantalla
-        this.add.rectangle(this.scale.width / 2, this.scale.height / 2 - 40, 700, 140, 0x000000, 0.7).setOrigin(0.5);
+        this.add.rectangle(this.scale.width / 2, this.scale.height / 2 - 40, 700, 540, 0x000000, 0.7).setOrigin(0.5);
         this.add.text(this.scale.width / 2, this.scale.height / 2 - 30, winnerText, {
             fontSize: '48px',
             color: '#ffffff'
@@ -156,6 +178,8 @@ export class GameScene extends Phaser.Scene {
             fontSize: '28px',
             color: '#ffffff'
         }).setOrigin(0.5);
+
+        
     }
 
     update() {
@@ -181,6 +205,7 @@ export class GameScene extends Phaser.Scene {
 
         // ESC para salir
         if (Phaser.Input.Keyboard.JustDown(this.escKey)) {
+            this.sound.stopAll();
             this.scene.start('MenuScene');
         }
     }

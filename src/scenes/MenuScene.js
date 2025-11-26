@@ -7,10 +7,20 @@ export class MenuScene extends Phaser.Scene {
     }
 
     preload() {
+
+        // IMÁGENES
     this.load.image('Titulo', 'assets/Bocetos/Inicio.png'); // fondo(titulo) 
+
+        // SONIDOS
+    this.load.audio('Musica_menu', 'assets/Sonidos para_red/Its Safe Now.mp3');
+    this.load.audio('Boton', 'assets/Sonidos para_red/Boton.mp3');
 }
 
     create() {
+
+        // SONIDOS
+        this.sound.add('Musica_menu').play({ loop: true, volume: 0.5 });
+
         const bg = this.add.image(0, 0, 'Titulo').setOrigin(0, 0);  //fondo(titulo)
         bg.setDisplaySize(this.scale.width, this.scale.height);
 
@@ -28,7 +38,10 @@ export class MenuScene extends Phaser.Scene {
         .on('pointerover', () => localBtn.setColor('#00ff88'))
         .on('pointerout', () => localBtn.setColor('#00ff00'))
         .on('pointerdown', () => {
+            this.sound.add('Boton').play();
+            this.sound.stopAll();
             this.scene.start('GameScene');
+
         });
 
         const onlineBtn = this.add.text(500, 390, 'Multijugador online (no disponible)', {
