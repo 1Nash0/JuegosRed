@@ -1,10 +1,6 @@
 import Phaser from 'phaser';
-import { Paddle } from '../entities/Paddle';
 import { Pom } from '../entities/Pom';
-import { CommandProcessor } from '../commands/CommandProcessor';
-import { MovePaddleCommand } from '../commands/MovePaddleCommand';
-import { PauseGameCommand } from '../commands/PuaseGameCommand';
-//import { Collision } from 'matter';
+import { Pin } from '../entities/Pin';
 
 export class GameScene extends Phaser.Scene {
 
@@ -13,243 +9,179 @@ export class GameScene extends Phaser.Scene {
     }
 
     init() {
-        this.players = new Map();
-        this.inputMappings = [];
-        this.ball = null;
-        this.isPaused = false;
-        this.escWasDown = false;
-        this.processor = new CommandProcessor();
+        this.processor = null;
+        this.timeLeft = 60;        // segundos para la partida
+        this.timerText = null;
+        this.gameTimer = null;
+        this.isGameOver = false;
     }
 
     preload() {
-    this.load.image('fondo', 'assets/Bocetos/Gameplay.png'); // fondo del juego
-    this.load.image('Martillo', 'assets/Martillo_provisional.png'); // fondo del juego
-    this.load.image('topo', 'assets/bojack.png'); // fondo del juego
-
-}
+        this.load.image('fondo', 'assets/Bocetos/Gameplay.png');
+        this.load.image('Martillo', 'assets/Martillo_provisional.png');
+        this.load.image('bojack', 'assets/bojack.png');
+    }
 
     create() {
         this.add.rectangle(500, 300, 1000, 600, 0x1a1a2e);
 
-        const bg = this.add.image(0, 0, 'fondo').setOrigin(0, 0);  // fondo del juego
+        const bg = this.add.image(0, 0, 'fondo').setOrigin(0, 0);
         bg.setDisplaySize(this.scale.width, this.scale.height);
 
-        
-    
-        this.martillo = new Pom(this,400, 300);
+        // Martillo que sigue al ratón
+        this.martillo = new Pom(this, 400, 300);
 
-        
-        
-        
-        
-
-        // Center discontinued line
-        for (let i = 0; i < 12; i++) {
-            this.add.rectangle(400, i * 50 + 25, 10, 30, 0x444444);
-        }
-    
         // Score texts
-        this.scoreLeft = this.add.text(100, 50, '0', {
-            fontSize: '48px',
-            color: '#000000ff'
-        });
+        this.scorePlayer1 = this.add.text(150, 50, 'Jugador 1: 0', {
+            fontSize: '32px',
+            color: '#00ff00'
+        }).setOrigin(0, 0);
 
-        this.rightScore = this.add.text(700, 50, '0', {
-            fontSize: '48px',
-            color: '#000000ff'
-        });
+        this.scorePlayer2 = this.add.text(650, 50, 'Jugador 2: 0', {
+            fontSize: '32px',
+            color: '#ff0000'
+        }).setOrigin(0, 0);
 
-        this.createBounds();
-        this.createBall();
-        this.launchBall();
+        this.puntosPlayer1 = 0;
+        this.puntosPlayer2 = 0;
 
-        this.ball.setInteractive({ useHandCursor: true });
-        this.ball.on('pointerdown', () => {
-            if (this.isPaused) return;
-            const player1 = this.players.get('player1');
-            if (player1) {
-                player1.score += 1;
-                this.scoreLeft.setText(player1.score.toString());
+        // Timer arriba a la derecha
+        this.timerText = this.add.text(this.scale.width - 20, 20, this.formatTime(this.timeLeft), {
+            fontSize: '28px',
+            color: '#ffffff'
+        }).setOrigin(1, 0);
+
+        // Crear topo
+        this.createTopos();
+
+        // Detectar clics fuera del topo
+        this.input.on('pointerdown', (pointer) => {
+            if (this.isGameOver) return;
+            // Solo contar si no clicamos en el topo
+            if (!this.topo.sprite.getBounds().contains(pointer.x, pointer.y)) {
+                this.puntosPlayer2 += 1;
+                this.scorePlayer2.setText(`Jugador 2: ${this.puntosPlayer2}`);
             }
         });
 
-
-
-
-        this.physics.add.overlap(this.ball, this.leftGoal, this.scoreRightGoal, null, this);
-        this.physics.add.overlap(this.ball, this.rightGoal, this.scoreLeftGoal, null, this);
-
-        this.setUpPlayers();
-        this.players.forEach(paddle => {
-            this.physics.add.collider(this.ball, paddle.sprite);
+        // Iniciar cuenta atrás de 1 minuto
+        this.gameTimer = this.time.addEvent({
+            delay: 1000,
+            loop: true,
+            callback: () => {
+                if (this.isGameOver) return;
+                this.timeLeft--;
+                this.timerText.setText(this.formatTime(this.timeLeft));
+                if (this.timeLeft <= 0) {
+                    this.endRound();
+                }
+            }
         });
 
         this.escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
     }
 
-    setUpPlayers() {
-        const leftPaddle = new Paddle(this, 'player1', 50, 300);
-        const rightPaddle = new Paddle(this, 'player2', 750, 300); 
-        
-        this.players.set('player1', leftPaddle);
-        this.players.set('player2', rightPaddle);
+    createTopos() {
+        this.topoHoles = [
+            { x: 200, y: 420 },
+            { x: 320, y: 320 },
+            { x: 440, y: 420 },
+            { x: 560, y: 320 },
+            { x: 680, y: 420 }
+        ];
 
-        const InputConfig = [
-            {
-                playerId: 'player1',
-                upKey : 'W',
-                downKey : 'S',
-            },
-            {
-                playerId: 'player2',
-                upKey : 'UP',
-                downKey : 'DOWN',
+        this.topo = new Pin(this, 0, this.topoHoles[0].x, this.topoHoles[0].y);
+        this.topo.setHoles(this.topoHoles);
+
+        // Evento cuando golpeas el topo
+        this.topo.sprite.on('pointerdown', () => {
+            if (this.isGameOver) return;
+            if (this.topo.isActive) {
+                this.puntosPlayer1 += 1;
+                this.scorePlayer1.setText(`Jugador 1: ${this.puntosPlayer1}`);
+                this.topo.hide();
             }
-        ]
-        this.inputMappings = InputConfig.map(config => {
-            return {
-                playerId : config.playerId,
-                upKeyObj : this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes[config.upKey]),
-                downKeyObj: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes[config.downKey]),
+        });
+
+        // El topo sale automáticamente cada 2 segundos
+        this.topoTimer = this.time.addEvent({
+            delay: 2000,
+            loop: true,
+            callback: () => {
+                if (this.isGameOver) return;
+                if (!this.topo.isActive) {
+                    this.topo.popUp();
+                }
             }
         });
     }
 
-    scoreLeftGoal() {
-        const player1 = this.players.get('player1');
-        player1.score += 1;
-        this.scoreLeft.setText(player1.score.toString());
-
-        if (player1.score >= 2) {
-            this.endGame('player1');
-        } else {
-            this.resetBall();
-        }
+    // Formatear segundos a MM:SS
+    formatTime(seconds) {
+        const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+        const s = (seconds % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
     }
 
-    scoreRightGoal() {
-        const player2 = this.players.get('player2');
-        player2.score += 1;
-        this.rightScore.setText(player2.score.toString());
+    // Termina la partida, muestra ganador y bloquea input
+    endRound() {
+        this.isGameOver = true;
 
-        if (player2.score >= 2) {
-            this.endGame('player2');
-        } else {
-            this.resetBall();
+        // Detener timers
+        if (this.topoTimer) this.topoTimer.remove(false);
+        if (this.gameTimer) this.gameTimer.remove(false);
+
+        // Desactivar interacciones
+        if (this.topo && this.topo.sprite) {
+            this.topo.sprite.disableInteractive();
+            this.topo.hide();
         }
-    }
 
-    endGame(winnerId) {
-        this.ball.setVelocity(0, 0);
-        this.players.forEach(paddle => {
-            paddle.sprite.setVelocity(0, 0);
-        });
-        this.physics.pause();
+        // Calcular ganador
+        let winnerText = 'Empate';
+        if (this.puntosPlayer1 > this.puntosPlayer2) {
+            winnerText = 'Gana Jugador 1';
+        } else if (this.puntosPlayer2 > this.puntosPlayer1) {
+            winnerText = 'Gana Jugador 2';
+        }
 
-        const winnerText = winnerId === 'player1' ? 'Player 1 Wins!' : 'Player 2 Wins!';
-        this.add.text(400, 250, winnerText, {
-            fontSize: '64px',
-            color: '#00ff00'
+        // Mostrar resultado en pantalla
+        this.add.rectangle(this.scale.width / 2, this.scale.height / 2 - 40, 700, 140, 0x000000, 0.7).setOrigin(0.5);
+        this.add.text(this.scale.width / 2, this.scale.height / 2 - 30, winnerText, {
+            fontSize: '48px',
+            color: '#ffffff'
         }).setOrigin(0.5);
 
-        const menuBtn = this.add.text(400, 350, 'Return to Main Menu', {
-            fontSize: '32px',
-            color: '#ffffff',
-        }).setOrigin(0.5)
-        .setInteractive({ useHandCursor: true })
-        .on('pointerover', () => menuBtn.setColor('#cccccc'))
-        .on('pointerout', () => menuBtn.setColor('#ffffff'))
-        .on('pointerdown', () => {
-            this.scene.start('MenuScene');
-        });
-    }
-    
-
-    resetBall() {
-        this.ball.setVelocity(0, 0);
-        this.ball.setPosition(400, 300);
-    
-        this.time.delayedCall(1000, () => {
-            this.launchBall();
-        });
-    }
-
-    launchBall() {
-        const angle = Phaser.Math.Between(-30, 30);
-        const speed = 300;
-        const direction = Math.random() < 0.5 ? 1 : -1;
-
-        this.ball.setVelocity(
-            Math.cos(Phaser.Math.DegToRad(angle)) * speed * direction,
-            Math.sin(Phaser.Math.DegToRad(angle)) * speed
-        )
-    }
-
-    createBall() {
-        const graphics = this.add.graphics();
-        graphics.fillStyle(0xffffff);
-        graphics.fillCircle(8, 8, 8);
-        graphics.generateTexture('ball', 16, 16);
-        graphics.destroy();
-
-        this.ball = this.physics.add.sprite(400, 300, 'ball');
-        this.ball.setCollideWorldBounds(true);
-        this.ball.setBounce(1);
-    }
-
-    createBounds() {
-        this.leftGoal = this.physics.add.sprite(0, 300, null);
-        this.leftGoal.setDisplaySize(10, 600);
-        this.leftGoal.body.setSize(10, 600);
-        this.leftGoal.setImmovable(true);
-        this.leftGoal.setVisible(false);
-
-        this.rightGoal = this.physics.add.sprite(800, 300, null);
-        this.rightGoal.setDisplaySize(10, 600);
-        this.rightGoal.body.setSize(10, 600);
-        this.rightGoal.setImmovable(true);
-        this.rightGoal.setVisible(false);
-    }
-
-    setPauseState(isPaused) {
-        this.isPaused = isPaused;
-        if (isPaused) {
-            this.scene.launch('PauseScene', { originalScene: 'GameScene' });
-            this.scene.pause();
-        } 
-    }
-
-    resume() {
-        this.isPaused = false;
-    }
-
-    togglePause() {
-        const newPauseState = !this.isPaused;
-        this.processor.process(
-            new PauseGameCommand(this, newPauseState)
-        );
+        this.add.text(this.scale.width / 2, this.scale.height / 2 + 30, `P1: ${this.puntosPlayer1}   P2: ${this.puntosPlayer2}`, {
+            fontSize: '28px',
+            color: '#ffffff'
+        }).setOrigin(0.5);
     }
 
     update() {
+        if (this.isGameOver) return;
 
-        this.colision = false;
+        // Control del topo con teclado numérico (1, 2, 3, 4, 5)
+        if (this.topo) {
+            const numKeys = [
+                Phaser.Input.Keyboard.KeyCodes.ONE,
+                Phaser.Input.Keyboard.KeyCodes.TWO,
+                Phaser.Input.Keyboard.KeyCodes.THREE,
+                Phaser.Input.Keyboard.KeyCodes.FOUR,
+                Phaser.Input.Keyboard.KeyCodes.FIVE
+            ];
 
-        if (this.escKey.isDown && !this.escWasDown) {
-            this.togglePause();
+            numKeys.forEach((key, index) => {
+                const keyObj = this.input.keyboard.addKey(key);
+                if (Phaser.Input.Keyboard.JustDown(keyObj)) {
+                    this.topo.moveToHole(index);
+                }
+            });
         }
 
-        this.inputMappings.forEach(mapping => {
-            const paddle = this.players.get(mapping.playerId);
-            let direction = null;
-            if (mapping.upKeyObj.isDown) {
-                direction = 'up';
-            } else if (mapping.downKeyObj.isDown) {
-                direction = 'down';
-            } else {
-                direction = 'stop';
-            }
-            let moveCommand = new MovePaddleCommand(paddle, direction);
-            this.processor.process(moveCommand);
-        });
+        // ESC para salir
+        if (Phaser.Input.Keyboard.JustDown(this.escKey)) {
+            this.scene.start('MenuScene');
+        }
     }
 }

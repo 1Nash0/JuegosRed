@@ -1,3 +1,4 @@
+// ...existing code...
 export class Pin {
 
     constructor(scene, id, x, y) {
@@ -5,33 +6,85 @@ export class Pin {
         this.scene = scene;
         this.isActive = false;
         this.popUpDuration = 1000; // ms que aparece el topo
-        this.hideDuration = 2000; // ms que desaparece antes de salir
         this.health = 1;
 
-        // Crear sprite del topo (círculo simple)
-        const graphics = this.scene.add.graphics();
-        graphics.fillStyle(0x8B4513); // Color marrón
-        graphics.fillCircle(25, 25, 25);
-        graphics.generateTexture(`topo-${id}`, 50, 50);
-        graphics.destroy();
+        this.holes = [];            // posiciones posibles
+        this.currentHoleIndex = 0;  // índice actual
 
-        this.sprite = this.scene.physics.add.sprite(x, y, `topo-${id}`);
+        // Control de cooldown entre movimientos
+        this.moveCooldown = 800; // ms a esperar entre moves (ajusta aquí)
+        this._lastMoveTime = 0;
+
+        // Usar sprite de bojack
+        this.sprite = this.scene.physics.add.sprite(x, y, 'bojack');
         this.sprite.setImmovable(true);
         this.sprite.body.allowGravity = false;
         this.sprite.setVisible(false);
+        this.sprite.setScale(0.20);
+        this.sprite.setOrigin(0.5);
+        this.sprite.setDepth(5);
 
-        // Hacer clickeable para golpear
-        this.sprite.setInteractive({ useHandCursor: true });
-        this.sprite.on('pointerdown', () => this.hit());
+        // Preparar callback pero NO dejar el sprite interactivo mientras esté oculto
+        this._onHitCallback = () => this.hit();
+        this._pointerRegistered = false;
+        this.sprite.disableInteractive(); // asegurar inicio no interactivo
+    }
+
+    // Establecer los agujeros (array de {x,y})
+    setHoles(holes = []) {
+        this.holes = holes;
+        if (this.holes.length) {
+            this.currentHoleIndex = 0;
+            this.moveToHole(this.currentHoleIndex);
+        }
+    }
+
+    // Mover al topo al agujero índice (con wrap)
+    moveToHole(index) {
+        if (!this.holes.length) return false;
+
+        const now = (this.scene && this.scene.time && this.scene.time.now) ? this.scene.time.now : Date.now();
+        if (now - this._lastMoveTime < this.moveCooldown) {
+            // demasiada rapidez, ignorar movimiento
+            return false;
+        }
+        this._lastMoveTime = now;
+
+        this.currentHoleIndex = Phaser.Math.Wrap(index, 0, this.holes.length);
+        const pos = this.holes[this.currentHoleIndex];
+        this.sprite.setPosition(pos.x, pos.y);
+
+        // Si el topo estaba visible al moverse, ocultarlo para penalizar cambio rápido
+        if (this.isActive) {
+            this.hide();
+        }
+
+        return true;
+    }
+
+    // Mover relativo (-1 / +1)
+    moveIndex(delta) {
+        if (!this.holes.length) return;
+        this.moveToHole(this.currentHoleIndex + delta);
     }
 
     // El topo sale del agujero
     popUp() {
         if (this.isActive) return;
         
+        // Asegurarse de estar en el agujero correcto al salir
+        this.moveToHole(this.currentHoleIndex);
+
         this.isActive = true;
         this.health = 1;
         this.sprite.setVisible(true);
+
+        // Activar interacción solo cuando es visible (evita que clicks previos fallen)
+        this.sprite.setInteractive({ useHandCursor: true });
+        if (!this._pointerRegistered) {
+            this.sprite.on('pointerdown', this._onHitCallback);
+            this._pointerRegistered = true;
+        }
 
         // El topo se esconde después de cierto tiempo
         this.scene.time.delayedCall(this.popUpDuration, () => {
@@ -43,11 +96,13 @@ export class Pin {
     hide() {
         this.isActive = false;
         this.sprite.setVisible(false);
+        // Desactivar interacción cuando está oculto
+        this.sprite.disableInteractive();
     }
 
-    // Cuando se golpea al topo
+    // Cuando se golpea al topo - retorna true si fue golpeado
     hit() {
-        if (!this.isActive) return;
+        if (!this.isActive) return false;
 
         this.health -= 1;
         this.sprite.setTint(0xff0000); // Parpadea rojo
@@ -71,3 +126,4 @@ export class Pin {
         this.sprite.clearTint();
     }
 }
+// ...existing code...
