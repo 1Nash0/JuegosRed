@@ -80,7 +80,7 @@ export class Pin {
         this.sprite.setVisible(true);
 
         // Activar interacción solo cuando es visible (evita que clicks previos fallen)
-        this.sprite.setInteractive({ useHandCursor: true });
+        this.sprite.setInteractive();
         if (!this._pointerRegistered) {
             this.sprite.on('pointerdown', this._onHitCallback);
             this._pointerRegistered = true;

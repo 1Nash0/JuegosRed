@@ -10,7 +10,7 @@ export class GameScene extends Phaser.Scene {
 
     init() {
         this.processor = null;
-        this.timeLeft = 60;        // segundos para la partida
+        this.timeLeft = 10;        // segundos para la partida
         this.timerText = null;
         this.gameTimer = null;
         this.isGameOver = false;
@@ -22,11 +22,12 @@ export class GameScene extends Phaser.Scene {
         this.load.image('fondo', 'assets/Bocetos/Gameplay.png');
         this.load.image('Martillo', 'assets/Martillo_provisional.png');
         this.load.image('bojack', 'assets/bojack.png');
+        this.load.image('Poder', 'assets/Rayo.png');
 
         // SONIDOS
         this.load.audio('Sonido_martillo', 'assets/Sonidos para_red/Martillo_juez.mp3');
         this.load.audio('Musica_nivel', 'assets/Sonidos para_red/Hydrogen.mp3');
-        this.load.audio('Sonido castor', 'assets/Sonidos para_red/Sonido castor.mp3');
+        this.load.audio('Castor', 'assets/Sonidos para_red/Castor.mp3');
         this.load.audio('Golpe', 'assets/Sonidos para_red/Golpe.mp3');
         this.load.audio('Fin_partida', 'assets/Sonidos para_red/Miami.mp3');
    
@@ -34,9 +35,23 @@ export class GameScene extends Phaser.Scene {
 
     create() {
 
+        // PODERES
+        this.sprite = this.physics.add.sprite(500, 300, 'Poder');
+
         // SONIDOS
         this.sound.add('Musica_nivel').play({ loop: true, volume: 0.5 });
 
+        // Ocultar cursor del navegador
+        this.input.mouse.disableContextMenu();
+        this.game.canvas.style.cursor = 'none';
+        
+        // Prevenir que el cursor reaparezca en interacciones
+        this.input.on('pointerover', () => {
+            this.game.canvas.style.cursor = 'none';
+        });
+        this.input.on('pointerout', () => {
+            this.game.canvas.style.cursor = 'none';
+        });
 
         this.add.rectangle(500, 300, 1000, 600, 0x1a1a2e);
 
@@ -61,9 +76,10 @@ export class GameScene extends Phaser.Scene {
         this.puntosPlayer2 = 0;
 
         // Timer arriba a la derecha
-        this.timerText = this.add.text(this.scale.width - 20, 20, this.formatTime(this.timeLeft), {
-            fontSize: '28px',
-            color: '#ffffff'
+        this.timerText = this.add.text(this.scale.width - 20, 550, this.formatTime(this.timeLeft), {
+            fontSize: '36px',
+            fontStyle: 'bold',
+            color: '#000000ff'
         }).setOrigin(1, 0);
 
         // Crear topo
@@ -73,7 +89,7 @@ export class GameScene extends Phaser.Scene {
         this.input.on('pointerdown', (pointer) => {
             if (this.isGameOver) return;
             // Solo contar si no clicamos en el topo
-            if (!this.topo.sprite.getBounds().contains(pointer.x, pointer.y)) {
+            if (!this.topo.sprite.getBounds().contains(pointer.x, pointer.y) || !this.sprite) {
                 this.puntosPlayer2 += 1;
                 this.scorePlayer2.setText(`Jugador 2: ${this.puntosPlayer2}`);
                 this.sound.play('Sonido_martillo');
@@ -117,7 +133,7 @@ export class GameScene extends Phaser.Scene {
                 this.scorePlayer1.setText(`Jugador 1: ${this.puntosPlayer1}`);
                 this.topo.hide();
                 this.sound.play('Golpe');
-                this.sound.play('Sonido castor');
+                this.sound.play('Castor');
                 // Temblor de pantalla
                 this.cameras.main.shake(200, 0.01);
             }
@@ -149,6 +165,17 @@ export class GameScene extends Phaser.Scene {
         this.sound.stopAll();
         this.sound.play('Fin_partida', { volume: 0.5 });
 
+        // Mostrar cursor cuando termina la ronda
+        this.game.canvas.style.cursor = 'auto';
+        // Quitar listeners que forzaban ocultar el cursor durante la partida
+        this.input.off('pointerover');
+        this.input.off('pointerout');
+
+        // Ocultar martillo
+        if (this.martillo) {
+            this.martillo.setVisible(false);
+        }
+
         // Detener timers
         if (this.topoTimer) this.topoTimer.remove(false);
         if (this.gameTimer) this.gameTimer.remove(false);
@@ -179,6 +206,20 @@ export class GameScene extends Phaser.Scene {
             color: '#ffffff'
         }).setOrigin(0.5);
 
+
+        const localBtn = this.add.text(500, 320, 'Volver al Menú', {
+            fontSize: '24px',
+            color: '#000000ff',
+        }).setOrigin(0.5)
+        .setInteractive({useHandCursor: true})
+        .on('pointerover', () => localBtn.setColor('#00ff88'))
+        .on('pointerout', () => localBtn.setColor('#00ff00'))
+        .on('pointerdown', () => {
+            this.sound.add('Boton').play();
+            this.sound.stopAll();
+            this.scene.start('MenuScene');
+
+        });
         
     }
 
