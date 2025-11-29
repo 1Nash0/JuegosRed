@@ -1,57 +1,62 @@
 import Phaser from 'phaser';
 
 export class PauseScene extends Phaser.Scene {
-
     constructor() {
         super('PauseScene');
     }
 
-    create(data) {
+    create(data = {}) {
         const w = this.scale.width;
         const h = this.scale.height;
         const cx = w / 2;
         const cy = h / 2;
 
-        // Fondo oscuro semitransparente (absorbe input)
-        this.add.rectangle(cx, cy, w, h, 0x000000, 0.6).setOrigin(0.5);
+        this._prevCursor = (this.game && this.game.canvas && this.game.canvas.style) ? this.game.canvas.style.cursor : '';
+        if (this.game && this.game.canvas && this.game.canvas.style) {
+            this.game.canvas.style.cursor = 'auto';
+        }
 
-        // Bloqueador POR DEBAJO del panel (evita click-through fuera del panel)
-        // Lo creamos antes del panel y con depth bajo.
-        const outerBlocker = this.add.rectangle(cx, cy, w, h, 0x000000, 0).setOrigin(0.5);
+        const outerBlocker = this.add.rectangle(cx, cy, w, h, 0x000000, 0.6).setOrigin(0.5);
         outerBlocker.setInteractive();
         outerBlocker.setDepth(0);
 
-        // Panel central (por encima del blocker)
-        const panel = this.add.rectangle(cx, cy, 520, 420, 0x1a1a2e).setStrokeStyle(4, 0x00ff00).setOrigin(0.5);
+        const panel = this.add.rectangle(cx, cy, 540, 460, 0x11121a).setStrokeStyle(3, 0x00cc66).setOrigin(0.5);
         panel.setDepth(1);
 
-        // Título
-        this.add.text(cx, cy - 160, 'JUEGO PAUSADO', {
+        panel.scale = 0.9;
+        this.tweens.add({ targets: panel, scale: 1, duration: 180, ease: 'Back.Out' });
+
+        this.add.text(cx, cy - 180, 'PAUSADO', {
             fontSize: '40px',
             fontStyle: 'bold',
-            color: '#00ff00',
+            color: '#00cc66',
             fontFamily: 'Arial'
         }).setOrigin(0.5).setDepth(2);
 
-        // --- Crear botones con depth alto para asegurar interacción ---
-        const resumeBtn = this.createButton(cx, cy - 30, 'REANUDAR', 0x00ff00, 0x00ff88);
-        const menuBtn   = this.createButton(cx, cy + 50, 'MENÚ PRINCIPAL', 0xff6b6b, 0xff8888);
-        const exitBtn   = this.createButton(cx, cy + 130, 'SALIR', 0xffffff, 0xcccccc);
+        this.add.rectangle(cx, cy - 140, 340, 3, 0x00cc66).setOrigin(0.5).setDepth(2);
 
-        // Asegurar que botones estén por encima
+        const resumeBtn = this.createButton(cx, cy - 40, 'REANUDAR', 0x00cc66, 0x66ffb2);
+        const menuBtn = this.createButton(cx, cy + 40, 'MENÚ PRINCIPAL', 0xff6b6b, 0xff9a9a);
+        const exitBtn = this.createButton(cx, cy + 120, 'SALIR', 0xffffff, 0xcccccc);
+
         resumeBtn.setDepth(10);
         menuBtn.setDepth(10);
         exitBtn.setDepth(10);
 
-        // Handlers de botones
         resumeBtn.on('pointerdown', () => {
+            if (this.game && this.game.canvas && this.game.canvas.style) {
+                this.game.canvas.style.cursor = this._prevCursor || 'auto';
+            }
+
+            if (data.originalScene) {
+                this.scene.resume(data.originalScene);
+            }
+
             this.scene.stop();
-            this.scene.resume(data.originalScene);
-            this.scene.get(data.originalScene).resume();
         });
 
         menuBtn.on('pointerdown', () => {
-            this.scene.stop(data.originalScene);
+            if (data.originalScene) this.scene.stop(data.originalScene);
             this.scene.start('MenuScene');
         });
 
@@ -59,26 +64,57 @@ export class PauseScene extends Phaser.Scene {
             this.game.destroy(true);
         });
 
-        // Cambiar cursor
-        this.input.setDefaultCursor('url(assets/cursor.png), pointer');
+        this._escHandler = () => resumeBtn.emit('pointerdown');
+        this.input.keyboard.on('keydown-ESC', this._escHandler);
 
-        // Manejo de tecla ESC para pausar
-        this.input.keyboard.on('keydown-ESC', () => {
-            this.scene.stop();
-            this.scene.resume(data.originalScene);
-            this.scene.get(data.originalScene).resume();
+        this.events.once('shutdown', () => {
+            if (this.game && this.game.canvas && this.game.canvas.style) {
+                this.game.canvas.style.cursor = this._prevCursor || 'auto';
+            }
+            if (this._escHandler) {
+                this.input.keyboard.off('keydown-ESC', this._escHandler);
+                this._escHandler = null;
+            }
         });
     }
 
-    createButton(x, y, text, color, overColor) {
-        const button = this.add.text(x, y, text, {
-            fontSize: '32px',
-            color: color,
-        }).setOrigin(0.5)
-        .setInteractive({useHandCursor: true})
-        .on('pointerover', () => button.setColor(overColor))
-        .on('pointerout', () => button.setColor(color));
+    createButton(x, y, text, normalHex, hoverHex) {
+        const width = 360;
+        const height = 64;
+        const normalColor = `#${normalHex.toString(16).padStart(6, '0')}`;
+        const hoverColor = `#${hoverHex.toString(16).padStart(6, '0')}`;
 
-        return button;
+        const bg = this.add.rectangle(0, 0, width, height, 0x1f2340).setStrokeStyle(2, normalHex).setOrigin(0.5);
+        const label = this.add.text(0, 0, text, {
+            fontSize: '22px',
+            fontStyle: 'bold',
+            color: normalColor,
+            fontFamily: 'Arial'
+        }).setOrigin(0.5);
+
+        const btn = this.add.container(x, y, [bg, label]);
+        btn.setSize(width, height);
+        btn.setInteractive(new Phaser.Geom.Rectangle(-width/2, -height/2, width, height), Phaser.Geom.Rectangle.Contains);
+
+        btn.on('pointerover', () => {
+            bg.setFillStyle(0x2f3458);
+            bg.setStrokeStyle(3, hoverHex);
+            label.setColor(hoverColor);
+            label.setScale(1.05);
+            if (this.game && this.game.canvas && this.game.canvas.style) this.game.canvas.style.cursor = 'pointer';
+        });
+        btn.on('pointerout', () => {
+            bg.setFillStyle(0x1f2340);
+            bg.setStrokeStyle(2, normalHex);
+            label.setColor(normalColor);
+            label.setScale(1);
+            if (this.game && this.game.canvas && this.game.canvas.style) this.game.canvas.style.cursor = 'auto';
+        });
+
+        btn.on('pointerdown', () => {
+            this.tweens.add({ targets: btn, scaleX: 0.98, scaleY: 0.98, duration: 80, yoyo: true });
+        });
+
+        return btn;
     }
 }

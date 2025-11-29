@@ -77,17 +77,33 @@ export class Pin {
 
         this.isActive = true;
         this.health = 1;
+        this._wasHit = false; // resetear cuando aparece
         this.sprite.setVisible(true);
 
-        // Activar interacción solo cuando es visible (evita que clicks previos fallen)
-        this.sprite.setInteractive();
+        // Activar interacción solo cuando es visible
+        this.sprite.setInteractive({ useHandCursor: true });
         if (!this._pointerRegistered) {
             this.sprite.on('pointerdown', this._onHitCallback);
             this._pointerRegistered = true;
         }
 
+        // Emitir evento de "salida" para que la escena pueda reaccionar (ej. recoger powerup)
+        try {
+            this.scene.events.emit('topoPopped', {
+                id: this.id,
+                holeIndex: this.currentHoleIndex,
+                x: this.sprite.x,
+                y: this.sprite.y,
+                timestamp: (this.scene.time) ? this.scene.time.now : Date.now()
+            });
+        } catch (e) {
+            // defensivo: no romper si scene.events no existe
+            console.warn('Emit topoPopped failed', e);
+        }
+
         // El topo se esconde después de cierto tiempo
         this.scene.time.delayedCall(this.popUpDuration, () => {
+            // hide() se encargará de emitir evento de "miss" si corresponde
             this.hide();
         });
     }
