@@ -10,7 +10,7 @@ export class GameScene extends Phaser.Scene {
 
     init() {
         this.processor = null;
-        this.timeLeft = 10;        // segundos para la partida
+        this.timeLeft = 20;        // segundos para la partida
         this.timerText = null;
         this.gameTimer = null;
         this.isGameOver = false;
@@ -75,24 +75,32 @@ export class GameScene extends Phaser.Scene {
         this.puntosPlayer1 = 0;
         this.puntosPlayer2 = 0;
 
-        // Timer arriba a la derecha
-        this.timerText = this.add.text(this.scale.width - 20, 550, this.formatTime(this.timeLeft), {
-            fontSize: '36px',
-            fontStyle: 'bold',
-            color: '#000000ff'
-        }).setOrigin(1, 0);
+        // Timer abajo a la derecha (contador de tiempo)
+        this.timerText = this.add.text(
+            this.scale.width - 20,
+            this.scale.height - 20,
+            this.formatTime(this.timeLeft),
+            { fontSize: '28px', color: '#ffffff' }
+        ).setOrigin(1, 1);
 
-        // Crear topo
+        // Usar sólo ESC para pausar (elimina el botón de pausa)
+        this.input.keyboard.on('keydown-ESC', () => {
+            if (this.isGameOver) return;
+            this.scene.launch('PauseScene', { originalScene: 'GameScene' });
+            this.scene.pause();
+        });
+
+        // Crear topo (u otras cosas que ya tengas)
         this.createTopos();
 
-        // Detectar clics fuera del topo
+        // Detectar clics fuera del topo (defensivo)
         this.input.on('pointerdown', (pointer) => {
             if (this.isGameOver) return;
-            // Solo contar si no clicamos en el topo
-            if (!this.topo.sprite.getBounds().contains(pointer.x, pointer.y) || !this.sprite) {
+            if (!this.topo || !this.topo.sprite) return;
+            const bounds = this.topo.sprite.getBounds();
+            if (!bounds.contains(pointer.x, pointer.y)) {
                 this.puntosPlayer2 += 1;
                 this.scorePlayer2.setText(`Jugador 2: ${this.puntosPlayer2}`);
-                this.sound.play('Sonido_martillo');
             }
         });
 
@@ -248,6 +256,13 @@ export class GameScene extends Phaser.Scene {
         if (Phaser.Input.Keyboard.JustDown(this.escKey)) {
             this.sound.stopAll();
             this.scene.start('MenuScene');
+        }
+    }
+
+    resume() {
+        // Forzar ocultar cursor al volver del PauseScene
+        if (this.game && this.game.canvas && this.game.canvas.style) {
+            this.game.canvas.style.cursor = 'none';
         }
     }
 }
