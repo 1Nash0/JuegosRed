@@ -12,8 +12,8 @@ export class MenuScene extends Phaser.Scene {
     this.load.image('Titulo', 'assets/Bocetos/Inicio.png'); // fondo(titulo) 
 
         // SONIDOS
-    this.load.audio('Musica_menu', 'assets/Sonidos para_red/Its Safe Now.mp3');
-    this.load.audio('Boton', 'assets/Sonidos para_red/Boton.mp3');
+  this.load.audio('Musica_menu', 'assets/Sonidos para_red/Its Safe Now.mp3');
+    this.load.audio('Boton', 'assets/Sonidos para_red/Boton.mp3');  
 }
 
     create() {
@@ -41,6 +41,19 @@ export class MenuScene extends Phaser.Scene {
             this.sound.add('Boton').play();
             this.sound.stopAll();
             this.scene.start('GameScene');
+
+        });
+         const creditBtn = this.add.text(500, 340, 'Créditos', {
+            fontSize: '24px',
+            color: '#00ff00',
+        }).setOrigin(0.5)
+        .setInteractive({useHandCursor: true})
+        .on('pointerover', () => creditBtn.setColor('#00ff88'))
+        .on('pointerout', () => creditBtn.setColor('#00ff00'))
+        .on('pointerdown', () => {
+            this.sound.add('Boton').play();
+            this.sound.stopAll();
+            this.scene.start('CreditScene');
 
         });
 
