@@ -12,7 +12,7 @@ export class Pin {
         this.currentHoleIndex = 0;  // índice actual
 
         // Control de cooldown entre movimientos
-        this.moveCooldown = 800; // ms a esperar entre moves (ajusta aquí)
+        this.moveCooldown = 700; // ms a esperar entre moves (ajusta aquí)
         this._lastMoveTime = 0;
 
         // Usar sprite de bojack
@@ -20,7 +20,7 @@ export class Pin {
         this.sprite.setImmovable(true);
         this.sprite.body.allowGravity = false;
         this.sprite.setVisible(false);
-        this.sprite.setScale(0.75);
+        this.sprite.setScale(0.5);
         this.sprite.setOrigin(0.5);
         this.sprite.setDepth(5);
 
