@@ -6,14 +6,18 @@ export class CreditScene extends Phaser.Scene {
     }
 
     preload() {
+
+         this.load.image('Creditos', 'assets/FondoCreditos.png'); // fondo(titulo) 
         // SOLO SONIDOS (opcional)
         this.load.audio('Musica_menu', 'assets/Sonidos para_red/Its Safe Now.mp3');
         this.load.audio('Boton', 'assets/Sonidos para_red/Boton.mp3');  
     }
 
     create() {
-        // FONDO SÓLIDO
-        this.cameras.main.setBackgroundColor('#c47d7dff'); // fondo gris oscuro
+        
+         const bg = this.add.image(0, 0, 'Creditos').setOrigin(0, 0);  //fondo(titulo)
+        bg.setDisplaySize(this.scale.width, this.scale.height);
+
 
         // SONIDOS
         this.sound.add('Musica_menu').play({ loop: true, volume: 0.5 });
@@ -26,10 +30,18 @@ export class CreditScene extends Phaser.Scene {
 
         // TEXTO DE CRÉDITOS
         const creditsText = `
-Desarrollador: TuNombre
-Arte: TuNombre
-Música: Nombre del compositor
-Testeo: TuNombre
+Desarrolladores:
+- Cristian Boabes
+- Nasreddin El Khiyat Imusatin
+- Jaime Alonso del Real
+- David Martínez García
+Arte: 
+- David Martínez García
+Sonidos y Música: 
+- Jaime Alonso del Real
+Testeo: 
+- Cristian Boabes
+- Nasreddin El Khiyat Imusatin
 Gracias por jugar
         `;
 
