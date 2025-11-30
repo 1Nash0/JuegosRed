@@ -100,7 +100,9 @@
 
 ## 7. Sonido
 - **Música:** BGM espacial retro estilo arcade.  
-- **Efectos:** Disparos, explosiones, colisiones, aparición de power-ups.
+- **Efectos:**
+- Sonido de golpe de mazo cuando el mazo golpea en la mesa y no da que al topo.
+- Sonido de castor cuando el mazo golpea al topo
 
 ---
 
