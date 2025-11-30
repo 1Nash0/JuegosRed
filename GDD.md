@@ -79,7 +79,7 @@
   ![Boceto de personajes a color](./public/assets/Bocetos/Inicio.png)
 
 - Diseño del mazo
-![Mazo](./public/assets/Mazo.png)
+![Mazo](./public/assets/mazo.png)
 
 - Diseño del topo
  ![Topo](./public/assets/pin.png)
