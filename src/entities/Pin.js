@@ -20,7 +20,7 @@ export class Pin {
         this.sprite.setImmovable(true);
         this.sprite.body.allowGravity = false;
         this.sprite.setVisible(false);
-        this.sprite.setScale(0.20);
+        this.sprite.setScale(0.75);
         this.sprite.setOrigin(0.5);
         this.sprite.setDepth(5);
 
@@ -142,4 +142,3 @@ export class Pin {
         this.sprite.clearTint();
     }
 }
-// ...existing code...

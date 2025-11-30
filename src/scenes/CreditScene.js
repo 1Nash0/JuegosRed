@@ -13,7 +13,7 @@ export class CreditScene extends Phaser.Scene {
 
     create() {
         // FONDO SÓLIDO
-        this.cameras.main.setBackgroundColor('#1d1d1d'); // fondo gris oscuro
+        this.cameras.main.setBackgroundColor('#c47d7dff'); // fondo gris oscuro
 
         // SONIDOS
         this.sound.add('Musica_menu').play({ loop: true, volume: 0.5 });
