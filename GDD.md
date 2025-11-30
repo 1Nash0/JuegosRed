@@ -99,5 +99,5 @@
 
 ## 9. Diagrama de Flujo
 
-![Diagrama de flujo](./assets/Diagrama.png)
+![Diagrama de flujo](./public/assets/Diagrama.png)
 
