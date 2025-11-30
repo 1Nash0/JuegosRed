@@ -35,6 +35,7 @@ export class GameScene extends Phaser.Scene {
         this.load.image('fondo', 'assets/Bocetos/Gameplay.png');
         this.load.image('Martillo', 'assets/Martillo_provisional.png');
         this.load.image('bojack', 'assets/bojack.png');
+        this.load.image('reloj', 'assets/reloj.png');
 
         // SONIDOS
         this.load.audio('Musica_nivel', 'assets/Sonidos para_red/Hydrogen.mp3');
@@ -70,14 +71,18 @@ export class GameScene extends Phaser.Scene {
         this.martillo = new Pom(this, 0, 400, 300);
 
         // Score texts
-        this.scorePlayer1 = this.add.text(150, 50, 'Jugador 1: 0', {
+        this.scorePlayer1 = this.add.text(150, 50, 'Pom 0', {
             fontSize: '32px',
-            color: '#00ff00'
+            color: '#263154ff',
+            fontStyle: 'bold',
+            fontFamily: 'Arial'
         }).setOrigin(0, 0);
 
-        this.scorePlayer2 = this.add.text(650, 50, 'Jugador 2: 0', {
+        this.scorePlayer2 = this.add.text(650, 50, 'Pin: 0', {
             fontSize: '32px',
-            color: '#ff0000'
+            color: '#701e1eff',
+            fontStyle: 'bold',
+            fontFamily: 'Arial'
         }).setOrigin(0, 0);
 
         this.puntosPlayer1 = 0;
@@ -92,14 +97,18 @@ export class GameScene extends Phaser.Scene {
         ).setOrigin(1, 1);
 
         // Powerup UI
-        this.powerupTextP1 = this.add.text(160, 70, `P1 Powerups: ${this.powerupStoredP1}/${this.powerupMaxStored}`, {
+        this.powerupTextP1 = this.add.text(160, 80, `Pom Powerups: ${this.powerupStoredP1}/${this.powerupMaxStored}`, {
             fontSize: '16px',
-            color: '#00ff00'
+            color: '#263154ff',
+            fontStyle: 'bold',
+            fontFamily: 'Arial'
         }).setOrigin(0, 0);
 
-        this.powerupTextP2 = this.add.text(this.scale.width - 160, 70, `P2 Powerups: ${this.powerupStoredP2}/${this.powerupMaxStored}`, {
+        this.powerupTextP2 = this.add.text(this.scale.width - 160, 80, `Pin Powerups: ${this.powerupStoredP2}/${this.powerupMaxStored}`, {
             fontSize: '16px',
-            color: '#ff0000'
+            color: '#701e1eff',
+            fontStyle: 'bold',
+            fontFamily: 'Arial'
         }).setOrigin(1, 0);
 
         // ESC para pausar
@@ -160,7 +169,7 @@ export class GameScene extends Phaser.Scene {
             const bounds = this.topo.sprite.getBounds();
             if (!bounds.contains(pointer.x, pointer.y)) {
                 this.puntosPlayer2 += 1;
-                this.scorePlayer2.setText(`Jugador 2: ${this.puntosPlayer2}`);
+                this.scorePlayer2.setText(`Pom: ${this.puntosPlayer2}`);
                 this.sound.play('Sonido_martillo');
             }
         });
@@ -203,7 +212,7 @@ export class GameScene extends Phaser.Scene {
             if (this.isGameOver) return;
             if (this.topo.isActive) {
                 this.puntosPlayer1 += 1;
-                this.scorePlayer1.setText(`Jugador 1: ${this.puntosPlayer1}`);
+                this.scorePlayer1.setText(`Pin: ${this.puntosPlayer1}`);
                 this.topo.hide();
                 this.sound.play('Golpe');
                 this.sound.play('Castor');
@@ -230,7 +239,7 @@ export class GameScene extends Phaser.Scene {
         return `${m}:${s}`;
     }
 
-    endRound() {
+     endRound() {
         this.isGameOver = true;
         this.sound.stopAll();
         this.sound.play('Fin_partida', { volume: 0.5 });
@@ -254,7 +263,18 @@ export class GameScene extends Phaser.Scene {
             this.topo.hide();
         }
 
-        // Calcular ganador
+        // PANEL central bonito
+        const cx = this.scale.width / 2;
+        const cy = this.scale.height / 2;
+
+        const panel = this.add.rectangle(cx, cy, 760, 420, 0x0b1220, 0.88).setOrigin(0.5).setDepth(200);
+        panel.setStrokeStyle(4, 0x1f6feb);
+
+        // efecto entrada
+        panel.scale = 0.8;
+        this.tweens.add({ targets: panel, scale: 1, duration: 220, ease: 'Back.Out' });
+
+        // Titulo ganador
         let winnerText = 'Empate';
         if (this.puntosPlayer1 > this.puntosPlayer2) {
             winnerText = 'Gana Jugador 1';
@@ -262,28 +282,90 @@ export class GameScene extends Phaser.Scene {
             winnerText = 'Gana Jugador 2';
         }
 
-        // Mostrar resultado
-        this.add.rectangle(this.scale.width / 2, this.scale.height / 2 - 40, 700, 540, 0x000000, 0.7).setOrigin(0.5);
-        this.add.text(this.scale.width / 2, this.scale.height / 2 - 30, winnerText, {
-            fontSize: '48px',
-            color: '#ffffff'
-        }).setOrigin(0.5);
+        this.add.text(cx, cy - 120, winnerText, {
+            fontSize: '42px',
+            fontStyle: 'bold',
+            color: '#ffffff',
+            fontFamily: 'Arial'
+        }).setOrigin(0.5).setDepth(201);
 
-        this.add.text(this.scale.width / 2, this.scale.height / 2 + 30, `P1: ${this.puntosPlayer1}   P2: ${this.puntosPlayer2}`, {
-            fontSize: '28px',
-            color: '#ffffff'
-        }).setOrigin(0.5);
+        // Estadísticas
+        this.add.text(cx, cy - 40, `P1: ${this.puntosPlayer1}`, {
+            fontSize: '26px',
+            color: '#3c4e97ff',
+            fontFamily: 'Arial'
+        }).setOrigin(0.5).setDepth(201);
 
-        const localBtn = this.add.text(500, 320, 'Volver al Menú', {
-            fontSize: '24px',
-            color: '#00ff00',
-        }).setOrigin(0.5)
-        .setInteractive({useHandCursor: true})
-        .on('pointerover', () => localBtn.setColor('#00ff88'))
-        .on('pointerout', () => localBtn.setColor('#00ff00'))
-        .on('pointerdown', () => {
-            try { this.sound.play('Boton'); } catch (e) {}
-            this.sound.stopAll();
+        this.add.text(cx, cy + 4, `P2: ${this.puntosPlayer2}`, {
+            fontSize: '26px',
+            color: '#843131ff',
+            fontFamily: 'Arial'
+        }).setOrigin(0.5).setDepth(201);
+
+        // Botones: Volver al menú y Repetir
+        const btnY = cy + 90;
+        const btnW = 220, btnH = 56;
+
+        const createBtn = (x, y, text, baseColor, hoverColor, cb) => {
+            const bg = this.add.rectangle(x, y, btnW, btnH, baseColor).setOrigin(0.5).setDepth(205);
+            bg.setStrokeStyle(2, 0x0a2740, 0.9);
+
+            const label = this.add.text(x, y, text, {
+                fontSize: '20px',
+                color: '#001a22', // texto oscuro por defecto (buena legibilidad sobre fondo claro)
+                fontFamily: 'Arial',
+                fontStyle: 'bold'
+            }).setOrigin(0.5).setDepth(206);
+
+            // sombra para mejor contraste
+            label.setShadow(2, 2, '#000000', 4);
+
+            // container para interacción
+            const container = this.add.container(0, 0, [bg, label]);
+            container.setSize(btnW, btnH);
+            container.setInteractive(new Phaser.Geom.Rectangle(x - btnW/2, y - btnH/2, btnW, btnH), Phaser.Geom.Rectangle.Contains);
+
+            // hover: cambiar color, texto a blanco y hacer un pequeño pop
+            container.on('pointerover', () => {
+                bg.setFillStyle(hoverColor);
+                label.setColor('#ffffff');
+                this.tweens.killTweensOf(container);
+                this.tweens.add({
+                    targets: container,
+                    scaleX: 1.03,
+                    scaleY: 1.03,
+                    duration: 120,
+                    ease: 'Power1'
+                });
+                this.game.canvas.style.cursor = 'pointer';
+            });
+
+            // out: restaurar
+            container.on('pointerout', () => {
+                bg.setFillStyle(baseColor);
+                label.setColor('#001a22');
+                this.tweens.killTweensOf(container);
+                this.tweens.add({
+                    targets: container,
+                    scaleX: 1,
+                    scaleY: 1,
+                    duration: 120,
+                    ease: 'Power1'
+                });
+                this.game.canvas.style.cursor = 'auto';
+            });
+
+            container.on('pointerdown', cb);
+            return container;
+        };
+
+        createBtn(cx - 140, btnY, 'Repetir', 0x88e1ff, 0x4fb0ff, () => {
+            this.sound.play('Boton');
+            this.scene.restart();
+        });
+
+        createBtn(cx + 140, btnY, 'Volver al Menú', 0xffdba8, 0xffb57a, () => {
+            this.sound.play('Boton');
             this.scene.start('MenuScene');
         });
     }
@@ -323,36 +405,30 @@ export class GameScene extends Phaser.Scene {
         }
     }
 
-    spawnPowerupAtRandomHole() {
+     spawnPowerupAtRandomHole() {
         if (!this.topoHoles || !this.topoHoles.length) return;
         if (this.powerup) return;
 
         const index = Phaser.Math.Between(0, this.topoHoles.length - 1);
         const pos = this.topoHoles[index];
 
-        const texKey = 'powerup-blue';
-        if (!this.textures.exists(texKey)) {
-            const size = 48;
-            const g = this.make.graphics({ x: 0, y: 0, add: false });
-            g.fillStyle(0x3b82f6, 1);
-            g.fillCircle(size / 2, size / 2, size / 2);
-            g.generateTexture(texKey, size, size);
-            g.destroy();
-        }
-
-        this.powerup = this.add.image(pos.x, pos.y - 10, texKey).setScale(1).setDepth(8);
+        // Usar el sprite 'reloj' (pre-cargado en preload) en lugar del círculo azul
+        const spriteKey = 'reloj';
+        this.powerup = this.add.image(pos.x, pos.y - 10, spriteKey).setScale(0.10).setDepth(8);
         this.powerupHoleIndex = index;
         this.powerup.setInteractive({ useHandCursor: true });
 
+        // Animación sutil de flotación
         this.tweens.add({
             targets: this.powerup,
             y: pos.y - 16,
-            duration: 700,
+            duration: 600,
             yoyo: true,
             repeat: -1,
             ease: 'Sine.easeInOut'
         });
 
+        // Expiración y programación del siguiente spawn
         this.time.delayedCall(this.powerupDuration, () => {
             if (this.powerup) {
                 this.powerup.destroy();
