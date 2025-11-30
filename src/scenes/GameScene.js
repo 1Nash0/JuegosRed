@@ -1,503 +1,602 @@
+// src/scenes/GameScene.js
 import Phaser from 'phaser';
 import { Pom } from '../entities/Pom';
 import { Pin } from '../entities/Pin';
 
 export class GameScene extends Phaser.Scene {
+  constructor() {
+    super('GameScene');
+  }
 
-    constructor() {
-        super('GameScene');
-    }
+  init() {
+    // Game state
+    this.timeLeft = 20;
+    this.isGameOver = false;
 
-    init() {
-        this.timeLeft = 20;
-        this.timerText = null;
-        this.gameTimer = null;
-        this.isGameOver = false;
+    // Scores (Opción A: Jugador 1 = Pom, Jugador 2 = Pin)
+    this.puntosPlayer1 = 0; // Pom
+    this.puntosPlayer2 = 0; // Pin
 
-        // POWERUP
-        this.powerupAmount = 30;
-        this.powerupUsesP1 = 0;
-        this.powerupUsesP2 = 0;
-        this.powerupMaxUsesTotal = 3;
-        this.powerupStoredP1 = 0;
-        this.powerupStoredP2 = 0;
-        this.powerupMaxStored = 3;
+    // Powerup config & state
+    this.powerupAmount = 30;
+    this.powerupMaxUsesTotal = 3; // por jugador
+    this.powerupMaxStored = 3;
+    this.powerupUsesP1 = 0;
+    this.powerupUsesP2 = 0;
+    this.powerupStoredP1 = 0;
+    this.powerupStoredP2 = 0;
 
-        this.powerup = null;
-        this.powerupHoleIndex = -1;
-        this.powerupDuration = 5000;
-        this.powerupSpawnMin = 4000;
-        this.powerupSpawnMax = 12000;
-    }
+    this.powerup = null;
+    this.powerupHoleIndex = -1;
+    this.powerupDuration = 5000;
+    this.powerupSpawnMin = 4000;
+    this.powerupSpawnMax = 12000;
 
-    preload() {
-        // IMÁGENES
-        this.load.image('fondo', 'assets/Bocetos/Gameplay.png');
-        this.load.image('Martillo', 'assets/Martillo_provisional.png');
-        this.load.image('bojack', 'assets/bojack.png');
-        this.load.image('reloj', 'assets/reloj.png');
+    // timers / references
+    this.topoTimer = null;
+    this.gameTimer = null;
+  }
 
-        // SONIDOS
-        this.load.audio('Musica_nivel', 'assets/Sonidos para_red/Hydrogen.mp3');
-        this.load.audio('Castor', 'assets/Sonidos para_red/Castor.mp3');
-        this.load.audio('Golpe', 'assets/Sonidos para_red/Golpe.mp3');
-        this.load.audio('Fin_partida', 'assets/Sonidos para_red/Miami.mp3');
-        this.load.audio('Sonido_martillo', 'assets/Sonidos para_red/Martillo_juez.mp3');
-        this.load.audio('Boton', 'assets/Sonidos para_red/Boton.mp3');
-    }
+  preload() {
+    // IMÁGENES
+    this.load.image('fondo', 'assets/Bocetos/Gameplay.png');
+    this.load.image('Martillo', 'assets/Martillo_provisional.png');
+    this.load.image('bojack', 'assets/bojack.png');
+    this.load.image('reloj', 'assets/reloj.png');
 
-    create() {
+    // SONIDOS
+    this.load.audio('Musica_nivel', 'assets/Sonidos para_red/Hydrogen.mp3');
+    this.load.audio('Castor', 'assets/Sonidos para_red/Castor.mp3');
+    this.load.audio('Golpe', 'assets/Sonidos para_red/Golpe.mp3');
+    this.load.audio('Fin_partida', 'assets/Sonidos para_red/Miami.mp3');
+    this.load.audio('Sonido_martillo', 'assets/Sonidos para_red/Martillo_juez.mp3');
+    this.load.audio('Boton', 'assets/Sonidos para_red/Boton.mp3');
+  }
 
-        // PODERES
-        this.sprite = this.physics.add.sprite(500, 300, 'Poder');
+  create() {
+    // Background & UI container
+    this.add.rectangle(500, 300, 1000, 600, 0x1a1a2e);
+    const bg = this.add.image(0, 0, 'fondo').setOrigin(0, 0);
+    bg.setDisplaySize(this.scale.width, this.scale.height);
 
-        // SONIDOS
-        this.sound.add('Musica_nivel').play({ loop: true, volume: 0.5 });
+    // Sonido de fondo
+   this.musicaNivel = this.sound.add('Musica_nivel');
+this.musicaNivel.play({ loop: true, volume: 0.5 });
 
-        // Ocultar cursor del navegador
-        this.input.mouse.disableContextMenu();
-        this.game.canvas.style.cursor = 'none';
-        
-        this.input.on('pointerover', () => {
-            this.game.canvas.style.cursor = 'none';
-        });
 
-        this.add.rectangle(500, 300, 1000, 600, 0x1a1a2e);
+    // Cursor: ocultamos por defecto; la entidad Pom puede mostrar su propio sprite
+    this.input.mouse.disableContextMenu();
+    this.game.canvas.style.cursor = 'none';
 
-        const bg = this.add.image(0, 0, 'fondo').setOrigin(0, 0);
-        bg.setDisplaySize(this.scale.width, this.scale.height);
+    // Martillo que sigue al ratón (Pom)
+    this.martillo = new Pom(this, 'Martillo'); // Asume constructor adaptado en Pom
 
-        // Martillo que sigue al ratón
-        this.martillo = new Pom(this, 0, 400, 300);
+    // Scores (consistentes con Opción A)
+    this.scorePlayer1 = this.add.text(150, 50, 'Pom: 0', {
+      fontSize: '32px',
+      color: '#263154ff',
+      fontStyle: 'bold',
+      fontFamily: 'Arial'
+    }).setOrigin(0, 0);
 
-        // Score texts
-        this.scorePlayer1 = this.add.text(150, 50, 'Pom 0', {
-            fontSize: '32px',
-            color: '#263154ff',
-            fontStyle: 'bold',
-            fontFamily: 'Arial'
-        }).setOrigin(0, 0);
+    this.scorePlayer2 = this.add.text(650, 50, 'Pin: 0', {
+      fontSize: '32px',
+      color: '#701e1eff',
+      fontStyle: 'bold',
+      fontFamily: 'Arial'
+    }).setOrigin(0, 0);
 
-        this.scorePlayer2 = this.add.text(650, 50, 'Pin: 0', {
-            fontSize: '32px',
-            color: '#701e1eff',
-            fontStyle: 'bold',
-            fontFamily: 'Arial'
-        }).setOrigin(0, 0);
+    // Timer abajo a la derecha
+    this.timerText = this.add.text(
+      this.scale.width - 20,
+      this.scale.height - 20,
+      this.formatTime(this.timeLeft),
+      { fontSize: '28px', color: '#000000ff', fontFamily: 'Arial' }
+    ).setOrigin(1, 1);
 
-        this.puntosPlayer1 = 0;
-        this.puntosPlayer2 = 0;
+    // Powerup UI
+    this.powerupTextP1 = this.add.text(160, 80, `P1 Powerups: ${this.powerupStoredP1}/${this.powerupMaxStored}`, {
+      fontSize: '16px',
+      color: '#263154ff',
+      fontStyle: 'bold',
+      fontFamily: 'Arial'
+    }).setOrigin(0, 0);
 
-        // Timer abajo a la derecha
-        this.timerText = this.add.text(
-            this.scale.width - 20,
-            this.scale.height - 20,
-            this.formatTime(this.timeLeft),
-            { fontSize: '28px', color: '#000000ff' }
-        ).setOrigin(1, 1);
+    this.powerupTextP2 = this.add.text(this.scale.width - 160, 80, `P2 Powerups: ${this.powerupStoredP2}/${this.powerupMaxStored}`, {
+      fontSize: '16px',
+      color: '#701e1eff',
+      fontStyle: 'bold',
+      fontFamily: 'Arial'
+    }).setOrigin(1, 0);
 
-        // Powerup UI
-        this.powerupTextP1 = this.add.text(160, 80, `Pom Powerups: ${this.powerupStoredP1}/${this.powerupMaxStored}`, {
-            fontSize: '16px',
-            color: '#263154ff',
-            fontStyle: 'bold',
-            fontFamily: 'Arial'
-        }).setOrigin(0, 0);
+    // Teclas: solo se crean una vez
+    this.keys = this.input.keyboard.addKeys({
+      one: Phaser.Input.Keyboard.KeyCodes.ONE,
+      two: Phaser.Input.Keyboard.KeyCodes.TWO,
+      three: Phaser.Input.Keyboard.KeyCodes.THREE,
+      four: Phaser.Input.Keyboard.KeyCodes.FOUR,
+      five: Phaser.Input.Keyboard.KeyCodes.FIVE,
+      esc: Phaser.Input.Keyboard.KeyCodes.ESC,
+      space: Phaser.Input.Keyboard.KeyCodes.SPACE
+    });
 
-        this.powerupTextP2 = this.add.text(this.scale.width - 160, 80, `Pin Powerups: ${this.powerupStoredP2}/${this.powerupMaxStored}`, {
-            fontSize: '16px',
-            color: '#701e1eff',
-            fontStyle: 'bold',
-            fontFamily: 'Arial'
-        }).setOrigin(1, 0);
+    // ESC: pausa (única acción para ESC)
+    this.keys.esc.on('down', () => {
+      if (this.isGameOver) return;
+      this.scene.launch('PauseScene', { originalScene: 'GameScene' });
+      this.scene.pause();
+    });
 
-        // ESC para pausar
-        this.input.keyboard.on('keydown-ESC', () => {
-            if (this.isGameOver) return;
-            this.scene.launch('PauseScene', { originalScene: 'GameScene' });
-            this.scene.pause();
-        });
+    // Resume handler (cuando vuelves desde pausa)
+    this.events.on('resume', this.onResume, this);
 
-        // Crear topo
-        this.createTopos();
+    // Crear topo (Pin)
+    this.createTopos();
 
-        // Iniciar spawn de powerups
-        this.scheduleNextPowerup();
+    // Start powerup spawns
+    this.scheduleNextPowerup();
 
-        // Evento cuando topo aparece (para recoger powerup automáticamente)
-        this.events.off('topoPopped');
-        this.events.on('topoPopped', (data = {}) => {
-            if (this.isGameOver) return;
-            if (this.powerup && this.powerupHoleIndex === data.holeIndex) {
-                this.pickupPowerupByPlayer(2);
-            }
-        });
+    // Evento topo popped: recoge el powerup automáticamente para P2 si coincide
+    this.events.off('topoPopped'); // aseguramos que no haya duplicados
+    this.events.on('topoPopped', (data = {}) => {
+      if (this.isGameOver) return;
+      if (this.powerup && this.powerupHoleIndex === data.holeIndex) {
+        // Si el topo aparece exactamente en el powerup -> se recoge para P2 (Pin)
+        this.pickupPowerupByPlayer(2);
+      }
+    });
 
-        // Detectar clics
-        this.input.on('pointerdown', (pointer) => {
-            if (this.isGameOver) return;
+    // Input pointer: manejador único
+    this.input.on('pointerdown', (pointer) => this.handlePointerDown(pointer));
 
-            const isLeft = pointer.button === 0 || (pointer.event && pointer.event.button === 0);
-            const isRight = pointer.button === 2 || (pointer.event && pointer.event.button === 2);
-
-            // Si hay powerup activo y el click está sobre él
-            if (this.powerup && this.powerup.active) {
-                const pBounds = this.powerup.getBounds();
-                if (pBounds.contains(pointer.x, pointer.y)) {
-                    if (isLeft) {
-                        this.pickupPowerupByPlayer(1);
-                        return;
-                    }
-                    if (isRight) {
-                        if (this.topo && this.powerupHoleIndex === this.topo.currentHoleIndex) {
-                            this.pickupPowerupByPlayer(2);
-                        }
-                        return;
-                    }
-                    return;
-                }
-            }
-
-            // Right click usa powerup del jugador 1
-            if (isRight) {
-                this.usePowerupByPlayer(1);
-                return;
-            }
-
-            // Left click fuera del topo suma punto a jugador 2
-            if (!this.topo || !this.topo.sprite) return;
-            const bounds = this.topo.sprite.getBounds();
-            if (!bounds.contains(pointer.x, pointer.y)) {
-                this.puntosPlayer2 += 1;
-                this.scorePlayer2.setText(`Pom: ${this.puntosPlayer2}`);
-                this.sound.play('Sonido_martillo');
-            }
-        });
-
-        // SPACE usa powerup del jugador 2
-        this.input.keyboard.on('keydown-SPACE', () => {
-            if (this.isGameOver) return;
-            this.usePowerupByPlayer(2);
-        });
-
-        // Timer cuenta atrás
-        this.gameTimer = this.time.addEvent({
-            delay: 1000,
-            loop: true,
-            callback: () => {
-                if (this.isGameOver) return;
-                this.timeLeft--;
-                this.timerText.setText(this.formatTime(this.timeLeft));
-                if (this.timeLeft <= 0) {
-                    this.endRound();
-                }
-            }
-        });
-    }
-
-    createTopos() {
-        this.topoHoles = [
-            { x: 200, y: 420 },
-            { x: 320, y: 320 },
-            { x: 440, y: 420 },
-            { x: 560, y: 320 },
-            { x: 680, y: 420 }
-        ];
-
-        this.topo = new Pin(this, 0, this.topoHoles[0].x, this.topoHoles[0].y);
-        this.topo.setHoles(this.topoHoles);
-
-        // Evento cuando golpeas el topo
-        this.topo.sprite.on('pointerdown', () => {
-            if (this.isGameOver) return;
-            if (this.topo.isActive) {
-                this.puntosPlayer1 += 1;
-                this.scorePlayer1.setText(`Pin: ${this.puntosPlayer1}`);
-                this.topo.hide();
-                this.sound.play('Golpe');
-                this.sound.play('Castor');
-                this.cameras.main.shake(200, 0.01);
-            }
-        });
-
-        // El topo sale automáticamente cada 2 segundos
-        this.topoTimer = this.time.addEvent({
-            delay: 2000,
-            loop: true,
-            callback: () => {
-                if (this.isGameOver) return;
-                if (!this.topo.isActive) {
-                    this.topo.popUp();
-                }
-            }
-        });
-    }
-
-    formatTime(seconds) {
-        const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-        const s = (seconds % 60).toString().padStart(2, '0');
-        return `${m}:${s}`;
-    }
-
-     endRound() {
-        this.isGameOver = true;
-        this.sound.stopAll();
-        this.sound.play('Fin_partida', { volume: 0.5 });
-
-        // Mostrar cursor
-        this.game.canvas.style.cursor = 'auto';
-        this.input.off('pointerover');
-
-        // Ocultar martillo
-        if (this.martillo) {
-            this.martillo.setVisible(false);
-        }
-
-        // Detener timers
-        if (this.topoTimer) this.topoTimer.remove(false);
-        if (this.gameTimer) this.gameTimer.remove(false);
-
-        // Desactivar interacciones
-        if (this.topo && this.topo.sprite) {
-            this.topo.sprite.disableInteractive();
-            this.topo.hide();
-        }
-
-        // PANEL central bonito
-        const cx = this.scale.width / 2;
-        const cy = this.scale.height / 2;
-
-        const panel = this.add.rectangle(cx, cy, 760, 420, 0x0b1220, 0.88).setOrigin(0.5).setDepth(200);
-        panel.setStrokeStyle(4, 0x1f6feb);
-
-        // efecto entrada
-        panel.scale = 0.8;
-        this.tweens.add({ targets: panel, scale: 1, duration: 220, ease: 'Back.Out' });
-
-        // Titulo ganador
-        let winnerText = 'Empate';
-        if (this.puntosPlayer1 > this.puntosPlayer2) {
-            winnerText = 'Gana Jugador 1';
-        } else if (this.puntosPlayer2 > this.puntosPlayer1) {
-            winnerText = 'Gana Jugador 2';
-        }
-
-        this.add.text(cx, cy - 120, winnerText, {
-            fontSize: '42px',
-            fontStyle: 'bold',
-            color: '#ffffff',
-            fontFamily: 'Arial'
-        }).setOrigin(0.5).setDepth(201);
-
-        // Estadísticas
-        this.add.text(cx, cy - 40, `P1: ${this.puntosPlayer1}`, {
-            fontSize: '26px',
-            color: '#3c4e97ff',
-            fontFamily: 'Arial'
-        }).setOrigin(0.5).setDepth(201);
-
-        this.add.text(cx, cy + 4, `P2: ${this.puntosPlayer2}`, {
-            fontSize: '26px',
-            color: '#843131ff',
-            fontFamily: 'Arial'
-        }).setOrigin(0.5).setDepth(201);
-
-        // Botones: Volver al menú y Repetir
-        const btnY = cy + 90;
-        const btnW = 220, btnH = 56;
-
-        const createBtn = (x, y, text, baseColor, hoverColor, cb) => {
-            const bg = this.add.rectangle(x, y, btnW, btnH, baseColor).setOrigin(0.5).setDepth(205);
-            bg.setStrokeStyle(2, 0x0a2740, 0.9);
-
-            const label = this.add.text(x, y, text, {
-                fontSize: '20px',
-                color: '#001a22', // texto oscuro por defecto (buena legibilidad sobre fondo claro)
-                fontFamily: 'Arial',
-                fontStyle: 'bold'
-            }).setOrigin(0.5).setDepth(206);
-
-            // sombra para mejor contraste
-            label.setShadow(2, 2, '#000000', 4);
-
-            // container para interacción
-            const container = this.add.container(0, 0, [bg, label]);
-            container.setSize(btnW, btnH);
-            container.setInteractive(new Phaser.Geom.Rectangle(x - btnW/2, y - btnH/2, btnW, btnH), Phaser.Geom.Rectangle.Contains);
-
-            // hover: cambiar color, texto a blanco y hacer un pequeño pop
-            container.on('pointerover', () => {
-                bg.setFillStyle(hoverColor);
-                label.setColor('#ffffff');
-                this.tweens.killTweensOf(container);
-                this.tweens.add({
-                    targets: container,
-                    scaleX: 1.03,
-                    scaleY: 1.03,
-                    duration: 120,
-                    ease: 'Power1'
-                });
-                this.game.canvas.style.cursor = 'pointer';
-            });
-
-            // out: restaurar
-            container.on('pointerout', () => {
-                bg.setFillStyle(baseColor);
-                label.setColor('#001a22');
-                this.tweens.killTweensOf(container);
-                this.tweens.add({
-                    targets: container,
-                    scaleX: 1,
-                    scaleY: 1,
-                    duration: 120,
-                    ease: 'Power1'
-                });
-                this.game.canvas.style.cursor = 'auto';
-            });
-
-            container.on('pointerdown', cb);
-            return container;
-        };
-
-        createBtn(cx - 140, btnY, 'Repetir', 0x88e1ff, 0x4fb0ff, () => {
-            this.sound.play('Boton');
-            this.scene.restart();
-        });
-
-        createBtn(cx + 140, btnY, 'Volver al Menú', 0xffdba8, 0xffb57a, () => {
-            this.sound.play('Boton');
-            this.scene.start('MenuScene');
-        });
-    }
-
-    update() {
+    // Timer cuenta atrás
+    this.gameTimer = this.time.addEvent({
+      delay: 1000,
+      loop: true,
+      callback: () => {
         if (this.isGameOver) return;
-
-        // Control del topo con teclado numérico (1-5)
-        if (this.topo) {
-            const numKeys = [
-                Phaser.Input.Keyboard.KeyCodes.ONE,
-                Phaser.Input.Keyboard.KeyCodes.TWO,
-                Phaser.Input.Keyboard.KeyCodes.THREE,
-                Phaser.Input.Keyboard.KeyCodes.FOUR,
-                Phaser.Input.Keyboard.KeyCodes.FIVE
-            ];
-
-            numKeys.forEach((key, index) => {
-                const keyObj = this.input.keyboard.addKey(key);
-                if (Phaser.Input.Keyboard.JustDown(keyObj)) {
-                    this.topo.moveToHole(index);
-                }
-            });
+        this.timeLeft--;
+        this.timerText.setText(this.formatTime(this.timeLeft));
+        if (this.timeLeft <= 0) {
+          this.endRound();
         }
+      }
+    });
 
-        // ESC para salir al menú
-        const escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
-        if (Phaser.Input.Keyboard.JustDown(escKey) && !this.isGameOver) {
-            this.sound.stopAll();
-            this.scene.start('MenuScene');
+    // Aseguramos que los textos y UI estén sincronizados
+    this.updateScoreUI();
+    this.updatePowerupUI();
+  }
+
+  // ----------------------
+  // Helper: pointer handler
+  // ----------------------
+  handlePointerDown(pointer) {
+    if (this.isGameOver) return;
+
+    const isLeft = pointer.button === 0 || (pointer.event && pointer.event.button === 0);
+    const isRight = pointer.button === 2 || (pointer.event && pointer.event.button === 2);
+
+    // Si hay powerup y se clickea sobre él
+    if (this.powerup && this.powerup.active) {
+      const pBounds = this.powerup.getBounds();
+      if (pBounds.contains(pointer.x, pointer.y)) {
+        if (isLeft) {
+          this.pickupPowerupByPlayer(1); // Pom recoge con LMB
+          return;
         }
+        if (isRight) {
+          // Si el topo está en el mismo agujero, P2 puede recoger con RMB
+          if (this.topo && this.powerupHoleIndex === this.topo.currentHoleIndex) {
+            this.pickupPowerupByPlayer(2);
+          }
+          return;
+        }
+      }
     }
 
-    resume() {
-        if (this.game && this.game.canvas && this.game.canvas.style) {
-            this.game.canvas.style.cursor = 'none';
-        }
+    // Si se hace RMB en otro sitio: usar powerup P1
+    if (isRight) {
+      this.usePowerupByPlayer(1);
+      return;
     }
 
-     spawnPowerupAtRandomHole() {
-        if (!this.topoHoles || !this.topoHoles.length) return;
-        if (this.powerup) return;
+    // Si LMB: intentar golpear topo (si está activo) — si fallas, punto para jugador 2 (Pin)
+    if (isLeft) {
+      if (!this.topo || !this.topo.sprite) return;
 
-        const index = Phaser.Math.Between(0, this.topoHoles.length - 1);
-        const pos = this.topoHoles[index];
+      const bounds = this.topo.sprite.getBounds();
+      const clickedTopo = bounds.contains(pointer.x, pointer.y);
 
-        // Usar el sprite 'reloj' (pre-cargado en preload) en lugar del círculo azul
-        const spriteKey = 'reloj';
-        this.powerup = this.add.image(pos.x, pos.y - 10, spriteKey).setScale(0.10).setDepth(8);
-        this.powerupHoleIndex = index;
-        this.powerup.setInteractive({ useHandCursor: true });
+      if (clickedTopo) {
+        // delegamos en el evento del propio topo (ya tiene pointerdown)
+        // pero garantizamos sonido/anim si topo estaba activo y la lógica del Pin lo permite
+        // (Pin class debería manejar su propio pointerdown)
+        return;
+      } else {
+        // Click fuera del topo -> punto para jugador 2 (Pin)
+        this.puntosPlayer2 += 1;
+        this.updateScoreUI();
+        this.sound.play('Sonido_martillo');
 
-        // Animación sutil de flotación
+      }
+    }
+  }
+
+  // ----------------------
+  // Topos (Pin)
+  // ----------------------
+  createTopos() {
+    this.topoHoles = [
+      { x: 200, y: 420 },
+      { x: 320, y: 320 },
+      { x: 440, y: 420 },
+      { x: 560, y: 320 },
+      { x: 680, y: 420 }
+    ];
+
+    this.topo = new Pin(this, 0, this.topoHoles[0].x, this.topoHoles[0].y);
+    this.topo.setHoles(this.topoHoles);
+
+    // El Pin (topo) debe manejar su propio pointerdown; lo conectamos aquí de forma segura:
+    this.topo.sprite.setInteractive();
+    this.topo.sprite.on('pointerdown', () => {
+      if (this.isGameOver) return;
+      if (this.topo.isActive) {
+        // Golpe exitoso -> punto para jugador 1 (Pom)
+        this.puntosPlayer1 += 1;
+        this.updateScoreUI();
+
+        // Oculta topo, reproduce sonidos y efecto
+        this.topo.hide();
+        this.sound.play('Golpe');
+        this.sound.play('Castor');
+        
+
+        this.cameras.main.shake(200, 0.01);
+      }
+    });
+
+    // Timer de aparición del topo (popUp cada X ms si está escondido)
+    this.topoTimer = this.time.addEvent({
+      delay: 2000,
+      loop: true,
+      callback: () => {
+        if (this.isGameOver) return;
+        if (!this.topo.isActive) {
+          this.topo.popUp();
+        }
+      }
+    });
+  }
+
+  // ----------------------
+  // Powerups
+  // ----------------------
+  scheduleNextPowerup() {
+    if (this.isGameOver) return;
+    if (this.powerup) return;
+
+    const delay = Phaser.Math.Between(this.powerupSpawnMin, this.powerupSpawnMax);
+    this.time.delayedCall(delay, () => {
+      if (this.isGameOver) return;
+      this.spawnPowerupAtRandomHole();
+    });
+  }
+
+  spawnPowerupAtRandomHole() {
+    if (!this.topoHoles || !this.topoHoles.length) return;
+    if (this.powerup) return;
+
+    const index = Phaser.Math.Between(0, this.topoHoles.length - 1);
+    const pos = this.topoHoles[index];
+
+    const spriteKey = 'reloj';
+    this.powerup = this.add.image(pos.x, pos.y - 10, spriteKey).setScale(0.10).setDepth(8);
+
+    this.powerupHoleIndex = index;
+    this.powerup.setInteractive(); // no usamos useHandCursor para mantener la apariencia
+
+    // flotación sutil
+    this.tweens.add({
+      targets: this.powerup,
+      y: pos.y - 16,
+      duration: 600,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+
+    // expiración del powerup
+    this.time.delayedCall(this.powerupDuration, () => {
+      if (!this.powerup) return;
+      this.powerup.destroy();
+      this.powerup = null;
+      this.powerupHoleIndex = -1;
+      this.scheduleNextPowerup();
+    });
+  }
+
+  pickupPowerupByPlayer(playerId) {
+    if (!this.powerup) return false;
+    if (this.isGameOver) return false;
+
+    if (playerId === 1) {
+      if (this.powerupStoredP1 >= this.powerupMaxStored) return false;
+      this.powerupStoredP1 += 1;
+    } else {
+      if (this.powerupStoredP2 >= this.powerupMaxStored) return false;
+      this.powerupStoredP2 += 1;
+    }
+
+    // Update UI
+    this.updatePowerupUI();
+
+    // Destroy powerup and schedule next spawn
+    if (this.powerup) {
+      this.powerup.destroy();
+      this.powerup = null;
+      this.powerupHoleIndex = -1;
+    }
+    this.scheduleNextPowerup();
+    return true;
+  }
+
+  usePowerupByPlayer(playerId) {
+    if (this.isGameOver) return false;
+
+    if (playerId === 1) {
+      if (this.powerupUsesP1 >= this.powerupMaxUsesTotal) return false;
+      if (this.powerupStoredP1 <= 0) return false;
+      this.powerupStoredP1 -= 1;
+      this.powerupUsesP1 += 1;
+    } else {
+      if (this.powerupUsesP2 >= this.powerupMaxUsesTotal) return false;
+      if (this.powerupStoredP2 <= 0) return false;
+      this.powerupStoredP2 -= 1;
+      this.powerupUsesP2 += 1;
+    }
+
+    // Apply effect: aumentar tiempo
+    this.timeLeft += this.powerupAmount;
+    this.timerText.setText(this.formatTime(this.timeLeft));
+
+    // feedback visual y sonoro
+    this.cameras.main.flash(150, 100, 255, 100);
+    if (this.sound.get('Boton')) this.sound.play('Boton');
+
+    // actualizar UI
+    this.updatePowerupUI();
+
+    return true;
+  }
+
+  // ----------------------
+  // UI update helpers
+  // ----------------------
+  updateScoreUI() {
+    // Consistencia con Opción A
+    if (this.scorePlayer1) this.scorePlayer1.setText(`Pom: ${this.puntosPlayer1}`);
+    if (this.scorePlayer2) this.scorePlayer2.setText(`Pin: ${this.puntosPlayer2}`);
+  }
+
+  updatePowerupUI() {
+    if (this.powerupTextP1) this.powerupTextP1.setText(`P1 Powerups: ${this.powerupStoredP1}/${this.powerupMaxStored}`);
+    if (this.powerupTextP2) this.powerupTextP2.setText(`P2 Powerups: ${this.powerupStoredP2}/${this.powerupMaxStored}`);
+  }
+
+  // ----------------------
+  // Format time helper
+  // ----------------------
+  formatTime(seconds) {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  }
+
+  // ----------------------
+  // Update loop
+  // ----------------------
+  update() {
+    if (this.isGameOver) return;
+
+    // Manejo teclas 1-5: mover topo (solo si topo está disponible)
+    if (this.topo) {
+      if (Phaser.Input.Keyboard.JustDown(this.keys.one)) this.topo.moveToHole(0);
+      if (Phaser.Input.Keyboard.JustDown(this.keys.two)) this.topo.moveToHole(1);
+      if (Phaser.Input.Keyboard.JustDown(this.keys.three)) this.topo.moveToHole(2);
+      if (Phaser.Input.Keyboard.JustDown(this.keys.four)) this.topo.moveToHole(3);
+      if (Phaser.Input.Keyboard.JustDown(this.keys.five)) this.topo.moveToHole(4);
+    }
+
+    // ESC ya manejado por evento (en create)
+    // SPACE para usar powerup P2
+    if (Phaser.Input.Keyboard.JustDown(this.keys.space)) {
+      this.usePowerupByPlayer(2);
+    }
+  }
+
+  // ----------------------
+  // End round (pantalla final)
+  // ----------------------
+endRound() {
+  this.isGameOver = true;
+  this.sound.stopAll();
+  if (this.sound.get('Fin_partida')) this.sound.play('Fin_partida', { volume: 0.5 });
+
+  // Mostrar cursor
+  if (this.game && this.game.canvas && this.game.canvas.style) {
+    this.game.canvas.style.cursor = 'auto';
+  }
+
+  // Desactivar input general
+  this.input.off('pointerdown');
+
+  // Ocultar martillo
+  if (this.martillo && this.martillo.setVisible) {
+    this.martillo.setVisible(false);
+  }
+
+  // Detener timers
+  if (this.topoTimer) this.topoTimer.remove(false);
+  if (this.gameTimer) this.gameTimer.remove(false);
+
+  if (this.topo && this.topo.sprite) {
+    this.topo.sprite.disableInteractive();
+    this.topo.hide();
+  }
+
+  // Coordenadas
+  const cx = this.scale.width / 2;
+  const cy = this.scale.height / 2;
+
+  // Panel
+  const panel = this.add.rectangle(cx, cy, 760, 420, 0x0b1220, 0.88)
+    .setOrigin(0.5)
+    .setDepth(200);
+  panel.setStrokeStyle(4, 0x1f6feb);
+  panel.scale = 0.85;
+
+  this.tweens.add({
+    targets: panel,
+    scale: 1,
+    duration: 220,
+    ease: 'Back.Out'
+  });
+
+  // IMPORTANTE: el panel NO debe ser interactivo
+  panel.disableInteractive();
+
+  // Winner text
+  let winnerText = 'Empate';
+  if (this.puntosPlayer1 > this.puntosPlayer2) winnerText = '🏆   Gana Jugador 1 (Pom)';
+  else if (this.puntosPlayer2 > this.puntosPlayer1) winnerText = '🏆   Gana Jugador 2 (Pin)';
+
+  this.add.text(cx, cy - 130, winnerText, {
+    fontSize: '42px',
+    fontStyle: 'bold',
+    color: '#ffffff',
+    fontFamily: 'Arial'
+  }).setOrigin(0.5).setDepth(250);
+
+  this.add.rectangle(cx, cy - 90, 420, 3, 0x1f6feb)
+    .setOrigin(0.5)
+    .setDepth(250);
+
+  // Stats
+  this.add.text(cx, cy - 20, `P1 (Pom): ${this.puntosPlayer1}`, {
+    fontSize: '26px',
+    color: '#6c8bff',
+    fontFamily: 'Arial'
+  }).setOrigin(0.5).setDepth(250);
+
+  this.add.text(cx, cy + 20, `P2 (Pin): ${this.puntosPlayer2}`, {
+    fontSize: '26px',
+    color: '#ff6b6b',
+    fontFamily: 'Arial'
+  }).setOrigin(0.5).setDepth(250);
+
+  // ============================
+  //  BOTONES MEJORADOS (NUEVO)
+  // ============================
+
+  const btnW = 240;
+  const btnH = 62;
+
+  const createBtn = (x, y, text, baseColor, hoverColor, callback) => {
+    // fondo visible
+    const bg = this.add.rectangle(0, 0, btnW, btnH, baseColor)
+      .setOrigin(0.5)
+      .setStrokeStyle(2, 0x0a2740)
+      .setDepth(305);
+
+    const label = this.add.text(0, 0, text, {
+      fontSize: '22px',
+      fontStyle: 'bold',
+      color: '#00131d',
+      fontFamily: 'Arial'
+    }).setOrigin(0.5).setDepth(306);
+
+    // Zona interactiva transparente EXACTAMENTE del mismo tamaño que el bg
+    const hit = this.add.rectangle(0, 0, btnW, btnH, 0x000000, 0)
+      .setOrigin(0.5)
+      .setDepth(307)
+      .setInteractive(new Phaser.Geom.Rectangle(-btnW/2, -btnH/2, btnW, btnH), Phaser.Geom.Rectangle.Contains);
+
+    const container = this.add.container(x, y, [bg, label, hit]);
+    container.setDepth(300);
+
+    // Hover usando el hitbox (coincide siempre con la apariencia)
+    hit.on('pointerover', () => {
+        bg.setFillStyle(hoverColor);
+        label.setColor('#ffffff');
+
+        this.tweens.killTweensOf(bg);
         this.tweens.add({
-            targets: this.powerup,
-            y: pos.y - 16,
-            duration: 600,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
+          targets: bg,
+          scaleX: 1.06,
+          scaleY: 1.06,
+          duration: 120,
+          ease: 'Power2'
         });
 
-        // Expiración y programación del siguiente spawn
-        this.time.delayedCall(this.powerupDuration, () => {
-            if (this.powerup) {
-                this.powerup.destroy();
-                this.powerup = null;
-                this.powerupHoleIndex = -1;
-                this.scheduleNextPowerup();
-            }
+        this.game.canvas.style.cursor = 'pointer';
+      });
+
+      hit.on('pointerout', () => {
+        bg.setFillStyle(baseColor);
+        label.setColor('#00131d');
+
+        this.tweens.killTweensOf(bg);
+        this.tweens.add({
+          targets: bg,
+          scaleX: 1,
+          scaleY: 1,
+          duration: 120,
+          ease: 'Power2'
         });
+
+        this.game.canvas.style.cursor = 'auto';
+      });
+
+      hit.on('pointerdown', () => {
+        if (this.sound.get('Boton')) this.sound.play('Boton', { volume: 0.5 });
+        callback();
+      });
+
+      return container;
+  };
+
+  const btnY = cy + 120;
+
+  createBtn(
+    cx - 150, 
+    btnY,
+    "Repetir",
+    0x88e1ff,    // base
+    0x4fb0ff,    // hover
+    () => this.scene.restart()
+  );
+
+  createBtn(
+    cx + 150,
+    btnY,
+    "Menú Principal",
+    0xffdba8,   // base
+    0xffb57a,   // hover
+    () => this.scene.start('MenuScene')
+  );
+}
+
+
+  // ----------------------
+  // Resume handler (desde PauseScene)
+  // ----------------------
+  onResume() {
+    if (this.game && this.game.canvas && this.game.canvas.style) {
+      this.game.canvas.style.cursor = 'none';
     }
-
-    scheduleNextPowerup() {
-        if (this.isGameOver) return;
-        if (this.powerup) return;
-
-        const delay = Phaser.Math.Between(this.powerupSpawnMin, this.powerupSpawnMax);
-        this.time.delayedCall(delay, () => {
-            if (this.isGameOver) return;
-            this.spawnPowerupAtRandomHole();
-        });
-    }
-
-    pickupPowerupByPlayer(playerId) {
-        if (!this.powerup) return false;
-        if (this.isGameOver) return false;
-
-        if (playerId === 1) {
-            if (this.powerupStoredP1 >= this.powerupMaxStored) return false;
-            this.powerupStoredP1 += 1;
-            if (this.powerupTextP1) this.powerupTextP1.setText(`P1 Powerups: ${this.powerupStoredP1}/${this.powerupMaxStored}`);
-        } else {
-            if (this.powerupStoredP2 >= this.powerupMaxStored) return false;
-            this.powerupStoredP2 += 1;
-            if (this.powerupTextP2) this.powerupTextP2.setText(`P2 Powerups: ${this.powerupStoredP2}/${this.powerupMaxStored}`);
-        }
-
-        
-
-        if (this.powerup) {
-            this.powerup.destroy();
-            this.powerup = null;
-            this.powerupHoleIndex = -1;
-        }
-        this.scheduleNextPowerup();
-        return true;
-    }
-
-    usePowerupByPlayer(playerId) {
-        if (this.isGameOver) return false;
-
-        if (playerId === 1) {
-            if (this.powerupUsesP1 >= this.powerupMaxUsesTotal) return false;
-            if (this.powerupStoredP1 <= 0) return false;
-            this.powerupStoredP1 -= 1;
-            this.powerupUsesP1 += 1;
-            if (this.powerupTextP1) this.powerupTextP1.setText(`P1 Powerups: ${this.powerupStoredP1}/${this.powerupMaxStored}`);
-        } else {
-            if (this.powerupUsesP2 >= this.powerupMaxUsesTotal) return false;
-            if (this.powerupStoredP2 <= 0) return false;
-            this.powerupStoredP2 -= 1;
-            this.powerupUsesP2 += 1;
-            if (this.powerupTextP2) this.powerupTextP2.setText(`P2 Powerups: ${this.powerupStoredP2}/${this.powerupMaxStored}`);
-        }
-
-        this.timeLeft += this.powerupAmount;
-        if (this.timerText) this.timerText.setText(this.formatTime(this.timeLeft));
-
-        
-        this.cameras.main.flash(150, 100, 255, 100);
-
-        return true;
-    }
+    // reactivar input pointer
+    this.input.on('pointerdown', (pointer) => this.handlePointerDown(pointer));
+  }
 }

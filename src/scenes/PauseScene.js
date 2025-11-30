@@ -79,42 +79,48 @@ export class PauseScene extends Phaser.Scene {
     }
 
     createButton(x, y, text, normalHex, hoverHex) {
-        const width = 360;
-        const height = 64;
-        const normalColor = `#${normalHex.toString(16).padStart(6, '0')}`;
-        const hoverColor = `#${hoverHex.toString(16).padStart(6, '0')}`;
+    const width = 360;
+    const height = 64;
+    const normalColor = `#${normalHex.toString(16).padStart(6, '0')}`;
+    const hoverColor = `#${hoverHex.toString(16).padStart(6, '0')}`;
 
-        const bg = this.add.rectangle(0, 0, width, height, 0x1f2340).setStrokeStyle(2, normalHex).setOrigin(0.5);
-        const label = this.add.text(0, 0, text, {
-            fontSize: '22px',
-            fontStyle: 'bold',
-            color: normalColor,
-            fontFamily: 'Arial'
-        }).setOrigin(0.5);
+    const bg = this.add.rectangle(0, 0, width, height, 0x1f2340)
+        .setStrokeStyle(2, normalHex)
+        .setOrigin(0.5);
 
-        const btn = this.add.container(x, y, [bg, label]);
-        btn.setSize(width, height);
-        btn.setInteractive(new Phaser.Geom.Rectangle(-width/2, -height/2, width, height), Phaser.Geom.Rectangle.Contains);
+    const label = this.add.text(0, 0, text, {
+        fontSize: '22px',
+        fontStyle: 'bold',
+        color: normalColor,
+        fontFamily: 'Arial'
+    }).setOrigin(0.5);
 
-        btn.on('pointerover', () => {
-            bg.setFillStyle(0x2f3458);
-            bg.setStrokeStyle(3, hoverHex);
-            label.setColor(hoverColor);
-            label.setScale(1.05);
-            if (this.game && this.game.canvas && this.game.canvas.style) this.game.canvas.style.cursor = 'pointer';
-        });
-        btn.on('pointerout', () => {
-            bg.setFillStyle(0x1f2340);
-            bg.setStrokeStyle(2, normalHex);
-            label.setColor(normalColor);
-            label.setScale(1);
-            if (this.game && this.game.canvas && this.game.canvas.style) this.game.canvas.style.cursor = 'auto';
-        });
+    const btn = this.add.container(x, y, [bg, label]);
 
-        btn.on('pointerdown', () => {
-            this.tweens.add({ targets: btn, scaleX: 0.98, scaleY: 0.98, duration: 80, yoyo: true });
-        });
+    // Establece el tamaño del botón
+    btn.setSize(width, height);
 
-        return btn;
-    }
+    // HITBOX PERFECTO sin offsets raros
+    btn.setInteractive({ useHandCursor: true });
+
+    btn.on('pointerover', () => {
+        bg.setFillStyle(0x2f3458);
+        bg.setStrokeStyle(3, hoverHex);
+        label.setColor(hoverColor);
+        label.setScale(1.05);
+    });
+
+    btn.on('pointerout', () => {
+        bg.setFillStyle(0x1f2340);
+        bg.setStrokeStyle(2, normalHex);
+        label.setColor(normalColor);
+        label.setScale(1);
+    });
+
+    btn.on('pointerdown', () => {
+        this.tweens.add({ targets: btn, scaleX: 0.98, scaleY: 0.98, duration: 80, yoyo: true });
+    });
+
+    return btn;
+}
 }
