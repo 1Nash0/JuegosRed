@@ -55,6 +55,7 @@ Gracias por jugar
         });
     }
 
+    
     update() {
         // MOVER LOS CRÉDITOS HACIA ARRIBA
         if (this.credits) {

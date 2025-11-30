@@ -58,6 +58,7 @@ export class PauseScene extends Phaser.Scene {
         menuBtn.on('pointerdown', () => {
             if (data.originalScene) this.scene.stop(data.originalScene);
             this.scene.start('MenuScene');
+            this.sound.stopAll();
         });
 
         exitBtn.on('pointerdown', () => {
