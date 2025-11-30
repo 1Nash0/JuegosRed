@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { MenuScene } from './scenes/MenuScene.js';
 import { GameScene } from './scenes/GameScene.js';
 import { PauseScene } from './scenes/PauseScene.js';
+import { CreditScene } from './scenes/CreditScene.js';
 
 const config = {
     type: Phaser.AUTO,
@@ -15,7 +16,7 @@ const config = {
             debug: false
         }
     },
-    scene: [MenuScene, GameScene, PauseScene],
+    scene: [MenuScene, GameScene, PauseScene, CreditScene],
     backgroundColor: '#1a1a2e',
 }
 
