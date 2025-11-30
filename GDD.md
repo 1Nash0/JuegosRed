@@ -38,13 +38,13 @@
 | Acción   Pin          | Tecla / Botón               |
 |-----------------------|-----------------------------|
 | Aparecer              | Teclas numéricas            |
-| Coger Power-Up        | Barra espaciadora / Click   |
+| Usart Power-Up        | Barra espaciadora / Click   |
 
 
 | Acción   Pom          | Tecla / Botón               |
 |-----------------------|-----------------------------|
 | Moverse               | Movimiento del ratón        |
-| Coger Power-Up        | Click derecho               |
+| Usar Power-Up        | Click derecho               |
 | Golpear               | Click izquierdo             |
 
 
@@ -79,9 +79,11 @@
   ![Boceto de personajes a color](./public/assets/Bocetos/Inicio.png)
 
 - Diseño del mazo
+- 
 ![Mazo](./public/assets/mazo.png)
 
 - Diseño del topo
+- 
  ![Topo](./public/assets/pin.png)
 
 
