@@ -25,31 +25,42 @@ export class MenuScene extends Phaser.Scene {
         bg.setDisplaySize(this.scale.width, this.scale.height);
 
 
-        this.add.text(500, 200, 'MOLE HOLE', {
-            fontSize: '64px',
-            color: '#ffffff'
+        this.add.text(380, 200, 'MOLE', {
+            fontSize: '72px',
+            color: '#892327',
+            fontStyle: 'bold',
+            fontFamily: 'roboto'
+        }).setOrigin(0.5);
+            this.add.text(600, 200, 'HOLE', {
+            fontSize: '72px',
+            color: '#253754',
+            fontFamily: 'roboto'
         }).setOrigin(0.5);
 
         const localBtn = this.add.text(500, 320, 'Local 2 Jugadores', {
-            fontSize: '24px',
-            color: '#00ff00',
+            fontSize: '30px',
+            fontStyle: 'bold',
+            fontFamily: 'roboto',
+            color: '#892327',
         }).setOrigin(0.5)
         .setInteractive({useHandCursor: true})
-        .on('pointerover', () => localBtn.setColor('#00ff88'))
-        .on('pointerout', () => localBtn.setColor('#00ff00'))
+        .on('pointerover', () => localBtn.setColor('#00fff7ff'))
+        .on('pointerout', () => localBtn.setColor('#892327'))
         .on('pointerdown', () => {
             this.sound.add('Boton').play();
             this.sound.stopAll();
             this.scene.start('GameScene');
 
         });
-         const creditBtn = this.add.text(500, 340, 'Créditos', {
-            fontSize: '24px',
-            color: '#00ff00',
+         const creditBtn = this.add.text(500, 370, 'Créditos', {
+            fontSize: '30px',
+            fontStyle: 'bold',
+            fontFamily: 'roboto',
+            color: '#892327',
         }).setOrigin(0.5)
         .setInteractive({useHandCursor: true})
-        .on('pointerover', () => creditBtn.setColor('#00ff88'))
-        .on('pointerout', () => creditBtn.setColor('#00ff00'))
+        .on('pointerover', () => creditBtn.setColor('#00fff7ff'))
+        .on('pointerout', () => creditBtn.setColor('#892327'))
         .on('pointerdown', () => {
             this.sound.add('Boton').play();
             this.sound.stopAll();
@@ -57,9 +68,9 @@ export class MenuScene extends Phaser.Scene {
 
         });
 
-        const onlineBtn = this.add.text(500, 390, 'Multijugador online (no disponible)', {
+        /*const onlineBtn = this.add.text(500, 390, 'Multijugador online (no disponible)', {
             fontSize: '24px',
             color: '#ff6666',
-        }).setOrigin(0.5);
+        }).setOrigin(0.5);*/
     }
 }

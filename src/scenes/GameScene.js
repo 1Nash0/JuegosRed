@@ -10,7 +10,7 @@ export class GameScene extends Phaser.Scene {
 
   init() {
     // Game state
-    this.timeLeft = 60;
+    this.timeLeft = 60; // segundos
     this.isGameOver = false;
 
     // Scores (Opción A: Jugador 1 = Pom, Jugador 2 = Pin)
@@ -18,11 +18,8 @@ export class GameScene extends Phaser.Scene {
     this.puntosPlayer2 = 0; // Pin
 
     // Powerup config & state
-    this.powerupAmount = 30;
-    this.powerupMaxUsesTotal = 3; // por jugador
+    this.powerupAmount = 20;
     this.powerupMaxStored = 3;
-    this.powerupUsesP1 = 0;
-    this.powerupUsesP2 = 0;
     this.powerupStoredP1 = 0;
     this.powerupStoredP2 = 0;
 
@@ -80,14 +77,14 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
     this.martillo = new Pom(this, 'Martillo'); // Asume constructor adaptado en Pom
 
     // Scores (consistentes con Opción A)
-    this.scorePlayer1 = this.add.text(150, 50, 'Pom: 0', {
+    this.scorePlayer1 = this.add.text(80, 50, 'Pom: 0', {
       fontSize: '32px',
       color: '#6a7cb4ff',
       fontStyle: 'bold',
       fontFamily: 'Arial'
     }).setOrigin(0, 0);
 
-    this.scorePlayer2 = this.add.text(650, 50, 'Pin: 0', {
+    this.scorePlayer2 = this.add.text(850, 50, 'Pin: 0', {
       fontSize: '32px',
       color: '#9e4b4bff',
       fontStyle: 'bold',
@@ -99,18 +96,18 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
       this.scale.width - 20,
       this.scale.height - 20,
       this.formatTime(this.timeLeft),
-      { fontSize: '28px', color: '#000000ff', fontFamily: 'Arial' }
+      { fontSize: '40px',fontStyle: 'bold', color: '#ffffffff', fontFamily: 'Arial' }
     ).setOrigin(1, 1);
 
     // Powerup UI
-    this.powerupTextP1 = this.add.text(160, 80, `P1 Powerups: ${this.powerupStoredP1}/${this.powerupMaxStored}`, {
+    this.powerupTextP1 = this.add.text(80, 80, `P1 Powerups: ${this.powerupStoredP1}/${this.powerupMaxStored}`, {
       fontSize: '16px',
       color: '#6a7cb4ff',
       fontStyle: 'bold',
       fontFamily: 'Arial'
     }).setOrigin(0, 0);
 
-    this.powerupTextP2 = this.add.text(this.scale.width - 160, 80, `P2 Powerups: ${this.powerupStoredP2}/${this.powerupMaxStored}`, {
+    this.powerupTextP2 = this.add.text(this.scale.width + 20, 80, `P2 Powerups: ${this.powerupStoredP2}/${this.powerupMaxStored}`, {
       fontSize: '16px',
       color: '#9e4b4bff',
       fontStyle: 'bold',
@@ -280,6 +277,7 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
   scheduleNextPowerup() {
     if (this.isGameOver) return;
     if (this.powerup) return;
+    if (this.powerupMaxStored <= 0) return; // No programar si máximo es 0
 
     const delay = Phaser.Math.Between(this.powerupSpawnMin, this.powerupSpawnMax);
     this.time.delayedCall(delay, () => {
@@ -299,7 +297,17 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
     this.powerup = this.add.image(pos.x, pos.y - 10, spriteKey).setScale(0.10).setDepth(8);
 
     this.powerupHoleIndex = index;
-    this.powerup.setInteractive(); // no usamos useHandCursor para mantener la apariencia
+    this.powerup.setInteractive({ useHandCursor: true });
+
+    // Evento click en powerup: Jugador 1 (LMB) recoge
+    this.powerup.on('pointerdown', (pointer) => {
+      if (this.isGameOver) return;
+      const isLeft = pointer.button === 0 || (pointer.event && pointer.event.button === 0);
+      if (isLeft) {
+        this.pickupPowerupByPlayer(1);
+        this.sound.play('Boton');
+      }
+    });
 
     // flotación sutil
     this.tweens.add({
@@ -333,6 +341,9 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
       this.powerupStoredP2 += 1;
     }
 
+    // Sonido al recoger powerup
+    if (this.sound.get('Boton')) this.sound.play('Boton');
+
     // Update UI
     this.updatePowerupUI();
 
@@ -350,15 +361,15 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
     if (this.isGameOver) return false;
 
     if (playerId === 1) {
-      if (this.powerupUsesP1 >= this.powerupMaxUsesTotal) return false;
       if (this.powerupStoredP1 <= 0) return false;
       this.powerupStoredP1 -= 1;
-      this.powerupUsesP1 += 1;
+      // Reducir máximo disponible
+      if (this.powerupMaxStored > 0) this.powerupMaxStored -= 1;
     } else {
-      if (this.powerupUsesP2 >= this.powerupMaxUsesTotal) return false;
       if (this.powerupStoredP2 <= 0) return false;
       this.powerupStoredP2 -= 1;
-      this.powerupUsesP2 += 1;
+      // Reducir máximo disponible
+      if (this.powerupMaxStored > 0) this.powerupMaxStored -= 1;
     }
 
     // Apply effect: aumentar tiempo
@@ -434,7 +445,7 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
 endRound() {
   this.isGameOver = true;
   this.sound.stopAll();
-  if (this.sound.get('Fin_partida')) this.sound.play('Fin_partida', { volume: 0.5 });
+  //this.sound.play('Fin_partida', { volume: 0.5 });
 
   // Mostrar cursor
   if (this.game && this.game.canvas && this.game.canvas.style) {
@@ -534,6 +545,8 @@ endRound() {
       .setInteractive(new Phaser.Geom.Rectangle(-btnW/2, -btnH/2, btnW, btnH), Phaser.Geom.Rectangle.Contains);
 
     const container = this.add.container(x, y, [bg, label, hit]);
+    container.setSize(btnW, btnH);
+    container.setInteractive();
     container.setDepth(300);
 
     // Hover usando el hitbox (coincide siempre con la apariencia)
@@ -585,7 +598,8 @@ endRound() {
     "Repetir",
     0x88e1ff,    // base
     0x4fb0ff,    // hover
-    () => this.scene.restart()
+    () => this.scene.restart(),
+    
   );
 
   createBtn(

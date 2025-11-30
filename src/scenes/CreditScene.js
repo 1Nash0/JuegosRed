@@ -45,21 +45,34 @@ Testeo:
 Gracias por jugar
         `;
 
-        this.credits = this.add.text(400, 400, creditsText, {
+        this.credits = this.add.text(400, 260, creditsText, {
             fontSize: '24px',
             color: '#ffffff',
             align: 'center',
             wordWrap: { width: 700 }
         }).setOrigin(0.5);
 
+        // Tween: pequeño movimiento de 'flotación' (bobbing)
+        // mueve los créditos unos pocos píxeles arriba/abajo en bucle
+        this.tweens.add({
+            targets: this.credits,
+            y: this.credits.y - 8,
+            duration: 1000,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1,
+            // ligera variación de inicio para no sincronizar exactamente si hay otros objetos
+            delay: 200,
+        });
+
         // BOTÓN PARA VOLVER
         this.localBtn = this.add.text(400, 500, 'Volver', {
             fontSize: '24px',
-            color: '#00ff00',
+            color: '#e18fa1ff',
         }).setOrigin(0.5)
         .setInteractive({useHandCursor: true})
-        .on('pointerover', () => this.localBtn.setColor('#00ff88'))
-        .on('pointerout', () => this.localBtn.setColor('#00ff00'))
+        .on('pointerover', () => this.localBtn.setColor('#ffffffff'))
+        .on('pointerout', () => this.localBtn.setColor('#e18fa1ff'))
         .on('pointerdown', () => {
             this.sound.add('Boton').play();
             this.sound.stopAll();
@@ -67,11 +80,8 @@ Gracias por jugar
         });
     }
 
-    
+
     update() {
-        // MOVER LOS CRÉDITOS HACIA ARRIBA
-        if (this.credits) {
-            this.credits.y -= 0.5;
-        }
+        // El movimiento de los créditos lo gestiona el tween creado en create()
     }
 }
