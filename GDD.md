@@ -88,6 +88,8 @@
 
 
  - Escenario base con los agujeros
+ - 
+ ![Escenario base](./public/assets/fondo_game.png)
   
  - Iconos de power-ups
  - 
