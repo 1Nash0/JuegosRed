@@ -75,7 +75,7 @@
 - **Bocetos:**
  - Personajes principales
  - 
-  ![Boceto de personaje](./Assets/Bocetos/Personajes.png)
+  ![Boceto de personaje](./public/assets/Bocetos/Personajes.png)
 
  - Escenario base con los agujeros
  - Iconos de power-ups
@@ -99,5 +99,5 @@
 
 ## 9. Diagrama de Flujo
 
-![Diagrama de flujo](./Assets/Diagrama.png)
+![Diagrama de flujo](./public/assets/Diagrama.png)
 
