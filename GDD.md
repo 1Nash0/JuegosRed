@@ -11,7 +11,7 @@
 7. [Sonido](#7-sonido)
 8. [Narrativa](#8-narrativa)
 9. [Diagrama de Flujo](#9-diagrama-de-flujo)
-10. [Referencias Externas](#10-referencias-enternas).
+10. [Referencias Externas](#10-referencias-externas)
 
     
 
