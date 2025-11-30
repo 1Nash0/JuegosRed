@@ -40,9 +40,10 @@ export class GameScene extends Phaser.Scene {
   preload() {
     // IMÁGENES
     this.load.image('fondo', 'assets/Bocetos/Gameplay.png');
-    this.load.image('Martillo', 'assets/Martillo_provisional.png');
-    this.load.image('bojack', 'assets/bojack.png');
+    this.load.image('Martillo', 'assets/mazo.png');
+    this.load.image('bojack', 'assets/pinGame.png');
     this.load.image('reloj', 'assets/reloj.png');
+    this.load.image('agujero', 'assets/agujero.png');
 
     // SONIDOS
     this.load.audio('Musica_nivel', 'assets/Sonidos para_red/Hydrogen.mp3');
@@ -270,9 +271,9 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
     });
   }
 
-  // ----------------------
+  
   // Powerups
-  // ----------------------
+
   scheduleNextPowerup() {
     if (this.isGameOver) return;
     if (this.powerup) return;
@@ -496,9 +497,7 @@ endRound() {
     fontFamily: 'Arial'
   }).setOrigin(0.5).setDepth(250);
 
-  // ============================
-  //  BOTONES MEJORADOS (NUEVO)
-  // ============================
+ 
 
   const btnW = 240;
   const btnH = 62;
@@ -590,7 +589,7 @@ endRound() {
 
 
   // ----------------------
-  // Resume handler (desde PauseScene)
+  // Resume handler 
   // ----------------------
   onResume() {
     if (this.game && this.game.canvas && this.game.canvas.style) {
