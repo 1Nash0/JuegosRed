@@ -1,5 +1,19 @@
 ﻿# 🎮 Game Design Document (GDD) – *MoleHole*
 
+ ## 📑 Índice
+
+1. [Información General](#1-información-general)
+2. [Concepto del Juego](#2-concepto-del-juego)
+3. [Mecánicas de Juego](#3-mecánicas-de-juego)
+4. [Controles](#4-controles)
+5. [Físicas y Escenario](#5-físicas-y-escenario)
+6. [Arte y Diseño Visual](#6-arte-y-diseño-visual)
+7. [Sonido](#7-sonido)
+8. [Narrativa](#8-narrativa)
+9. [Diagrama de Flujo](#9-diagrama-de-flujo)
+
+    
+
 ## 1. Información General
 - **Nombre del juego:** MoleHole
 - **Género:** Party / Arcade Competitivo
