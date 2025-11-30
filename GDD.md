@@ -136,5 +136,6 @@
 ![Diagrama de flujo](./public/assets/Diagrama.png)
 
 ## 10. Referencias externas
+- Dibujos inspirados en "Bojack Horseman"
 - Música del "HotLine Miami"
 
