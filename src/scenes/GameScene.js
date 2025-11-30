@@ -10,7 +10,7 @@ export class GameScene extends Phaser.Scene {
 
   init() {
     // Game state
-    this.timeLeft = 20;
+    this.timeLeft = 60;
     this.isGameOver = false;
 
     // Scores (Opción A: Jugador 1 = Pom, Jugador 2 = Pin)
@@ -39,7 +39,7 @@ export class GameScene extends Phaser.Scene {
 
   preload() {
     // IMÁGENES
-    this.load.image('fondo', 'assets/Bocetos/fondo_game.png');
+    this.load.image('fondo', 'assets/fondo_game.png');
     this.load.image('Martillo', 'assets/mazo.png');
     this.load.image('bojack', 'assets/pin.png');
     this.load.image('reloj', 'assets/reloj.png');
@@ -75,14 +75,14 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
     // Scores (consistentes con Opción A)
     this.scorePlayer1 = this.add.text(150, 50, 'Pom: 0', {
       fontSize: '32px',
-      color: '#263154ff',
+      color: '#6a7cb4ff',
       fontStyle: 'bold',
       fontFamily: 'Arial'
     }).setOrigin(0, 0);
 
     this.scorePlayer2 = this.add.text(650, 50, 'Pin: 0', {
       fontSize: '32px',
-      color: '#701e1eff',
+      color: '#9e4b4bff',
       fontStyle: 'bold',
       fontFamily: 'Arial'
     }).setOrigin(0, 0);
@@ -98,17 +98,17 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
     // Powerup UI
     this.powerupTextP1 = this.add.text(160, 80, `P1 Powerups: ${this.powerupStoredP1}/${this.powerupMaxStored}`, {
       fontSize: '16px',
-      color: '#263154ff',
+      color: '#6a7cb4ff',
       fontStyle: 'bold',
       fontFamily: 'Arial'
     }).setOrigin(0, 0);
 
     this.powerupTextP2 = this.add.text(this.scale.width - 160, 80, `P2 Powerups: ${this.powerupStoredP2}/${this.powerupMaxStored}`, {
       fontSize: '16px',
-      color: '#701e1eff',
+      color: '#9e4b4bff',
       fontStyle: 'bold',
       fontFamily: 'Arial'
-    }).setOrigin(1, 0);
+    }).setOrigin(1.5, 0);
 
     // Teclas: solo se crean una vez
     this.keys = this.input.keyboard.addKeys({
@@ -210,9 +210,7 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
       const clickedTopo = bounds.contains(pointer.x, pointer.y);
 
       if (clickedTopo) {
-        // delegamos en el evento del propio topo (ya tiene pointerdown)
-        // pero garantizamos sonido/anim si topo estaba activo y la lógica del Pin lo permite
-        // (Pin class debería manejar su propio pointerdown)
+       
         return;
       } else {
         // Click fuera del topo -> punto para jugador 2 (Pin)
@@ -224,9 +222,7 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
     }
   }
 
-  // ----------------------
-  // Topos (Pin)
-  // ----------------------
+  
   createTopos() {
     this.topoHoles = [
       { x: 200, y: 420 },

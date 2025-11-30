@@ -22,7 +22,7 @@ export class Pin {
         this.sprite.setVisible(false);
         this.sprite.setScale(0.5);
         this.sprite.setOrigin(0.5);
-        this.sprite.setDepth(5);
+        this.sprite.setDepth(2);
 
         // Preparar callback pero NO dejar el sprite interactivo mientras esté oculto
         this._onHitCallback = () => this.hit();
