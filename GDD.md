@@ -52,7 +52,7 @@
 | Acción   Pin          | Tecla / Botón               |
 |-----------------------|-----------------------------|
 | Aparecer              | Teclas numéricas            |
-| Usart Power-Up        | Barra espaciadora / Click   |
+| Usar Power-Up        | Barra espaciadora / Click   |
 
 
 | Acción   Pom          | Tecla / Botón               |
