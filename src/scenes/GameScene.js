@@ -60,6 +60,13 @@ export class GameScene extends Phaser.Scene {
     const bg = this.add.image(0, 0, 'fondo').setOrigin(0, 0);
     bg.setDisplaySize(this.scale.width, this.scale.height);
 
+    this.add.image(200, 480, 'agujero').setScale(0.5);
+    this.add.image(320, 320, 'agujero').setScale(0.5);
+    this.add.image(440, 480, 'agujero').setScale(0.5);
+    this.add.image(560, 320, 'agujero').setScale(0.5);
+    this.add.image(680, 480, 'agujero').setScale(0.5);
+    this.add.image(800, 320, 'agujero').setScale(0.5);
+
     // Sonido de fondo
    this.musicaNivel = this.sound.add('Musica_nivel');
 this.musicaNivel.play({ loop: true, volume: 0.5 });
@@ -117,15 +124,9 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
       three: Phaser.Input.Keyboard.KeyCodes.THREE,
       four: Phaser.Input.Keyboard.KeyCodes.FOUR,
       five: Phaser.Input.Keyboard.KeyCodes.FIVE,
+      six: Phaser.Input.Keyboard.KeyCodes.SIX,
       esc: Phaser.Input.Keyboard.KeyCodes.ESC,
       space: Phaser.Input.Keyboard.KeyCodes.SPACE
-    });
-
-    // ESC: pausa (única acción para ESC)
-    this.keys.esc.on('down', () => {
-      if (this.isGameOver) return;
-      this.scene.launch('PauseScene', { originalScene: 'GameScene' });
-      this.scene.pause();
     });
 
     // Resume handler (cuando vuelves desde pausa)
@@ -179,9 +180,9 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
     const isRight = pointer.button === 2 || (pointer.event && pointer.event.button === 2);
 
     // Si hay powerup y se clickea sobre él
-    if (this.powerup && this.powerup.active) {
-      const pBounds = this.powerup.getBounds();
-      if (pBounds.contains(pointer.x, pointer.y)) {
+    if (this.powerup && this.powerup.sprite) {
+      const pBounds = this.powerup.sprite.getBounds();
+      if (pBounds && pBounds.contains(pointer.x, pointer.y)) {
         if (isLeft) {
           this.pickupPowerupByPlayer(1); // Pom recoge con LMB
           return;
@@ -207,17 +208,22 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
       if (!this.topo || !this.topo.sprite) return;
 
       const bounds = this.topo.sprite.getBounds();
-      const clickedTopo = bounds.contains(pointer.x, pointer.y);
+      const clickedTopo = bounds && bounds.contains(pointer.x, pointer.y);
 
-      if (clickedTopo) {
-       
+      if (clickedTopo && this.topo.isActive) {
+        // Golpe exitoso -> punto para jugador 1 (Pom)
+        this.puntosPlayer1 += 1;
+        this.updateScoreUI();
+        this.topo.hide();
+        this.sound.play('Golpe');
+        this.sound.play('Castor');
+        this.cameras.main.shake(200, 0.01);
         return;
       } else {
         // Click fuera del topo -> punto para jugador 2 (Pin)
         this.puntosPlayer2 += 1;
         this.updateScoreUI();
         this.sound.play('Sonido_martillo');
-
       }
     }
   }
@@ -225,11 +231,12 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
   
   createTopos() {
     this.topoHoles = [
-      { x: 200, y: 420 },
+      { x: 200, y: 480 },
       { x: 320, y: 320 },
-      { x: 440, y: 420 },
+      { x: 440, y: 480 },
       { x: 560, y: 320 },
-      { x: 680, y: 420 }
+      { x: 680, y: 480 },
+      { x: 800, y: 320 }
     ];
 
     this.topo = new Pin(this, 0, this.topoHoles[0].x, this.topoHoles[0].y);
@@ -256,7 +263,7 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
 
     // Timer de aparición del topo (popUp cada X ms si está escondido)
     this.topoTimer = this.time.addEvent({
-      delay: 2000,
+      delay: 1500,
       loop: true,
       callback: () => {
         if (this.isGameOver) return;
@@ -404,9 +411,17 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
       if (Phaser.Input.Keyboard.JustDown(this.keys.three)) this.topo.moveToHole(2);
       if (Phaser.Input.Keyboard.JustDown(this.keys.four)) this.topo.moveToHole(3);
       if (Phaser.Input.Keyboard.JustDown(this.keys.five)) this.topo.moveToHole(4);
+      if (Phaser.Input.Keyboard.JustDown(this.keys.six)) this.topo.moveToHole(5);
     }
 
-    // ESC ya manejado por evento (en create)
+    // ESC para pausar
+    if (Phaser.Input.Keyboard.JustDown(this.keys.esc)) {
+      if (!this.isGameOver) {
+        this.scene.launch('PauseScene', { originalScene: 'GameScene' });
+        this.scene.pause();
+      }
+    }
+
     // SPACE para usar powerup P2
     if (Phaser.Input.Keyboard.JustDown(this.keys.space)) {
       this.usePowerupByPlayer(2);
