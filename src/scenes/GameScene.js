@@ -39,7 +39,7 @@ export class GameScene extends Phaser.Scene {
 
   preload() {
     // IMÁGENES
-    this.load.image('fondo', 'assets/Bocetos/Gameplay.png');
+    this.load.image('fondo', 'assets/Bocetos/fondo_game.png');
     this.load.image('Martillo', 'assets/mazo.png');
     this.load.image('bojack', 'assets/pin.png');
     this.load.image('reloj', 'assets/reloj.png');
