@@ -76,10 +76,23 @@
  - Personajes principales
  - 
   ![Boceto de personaje](./public/assets/Bocetos/Personajes.png)
+  ![Boceto de personajes a color](./public/assets/Bocetos/Inicio.png)
+
+- Diseño del mazo
+![Mazo](./public/assets/Mazo.png)
+
+- Diseño del topo
+ ![Topo](./public/assets/pin.png)
+
 
  - Escenario base con los agujeros
+  
  - Iconos de power-ups
-- **Logo:** 
+ - 
+   ![PowerUp de tiempo](./public/assets/reloj.png)
+
+- **Logo:**
+    ![Logo](./public/assets/Logo.png)
 
 ---
 
