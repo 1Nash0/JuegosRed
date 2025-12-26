@@ -74,7 +74,13 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
     this.game.canvas.style.cursor = 'none';
 
     // Martillo que sigue al ratón (Pom)
-    this.martillo = new Pom(this, 'Martillo'); // Asume constructor adaptado en Pom
+  this.martillo = new Pom(
+  this,
+  'Martillo',
+  this.input.activePointer.x,
+  this.input.activePointer.y
+);
+
 
     // Scores (consistentes con Opción A)
     this.scorePlayer1 = this.add.text(80, 50, 'Pom: 0', {
@@ -202,27 +208,33 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
 
     // Si LMB: intentar golpear topo (si está activo) — si fallas, punto para jugador 2 (Pin)
     if (isLeft) {
-      if (!this.topo || !this.topo.sprite) return;
 
-      const bounds = this.topo.sprite.getBounds();
-      const clickedTopo = bounds && bounds.contains(pointer.x, pointer.y);
+  // 🔨 animación del martillo SIEMPRE que se golpea
+  if (this.martillo) {
+    this.martillo.hit();
+  }
 
-      if (clickedTopo && this.topo.isActive) {
-        // Golpe exitoso -> punto para jugador 1 (Pom)
-        this.puntosPlayer1 += 1;
-        this.updateScoreUI();
-        this.topo.hide();
-        this.sound.play('Golpe');
-        this.sound.play('Castor');
-        this.cameras.main.shake(200, 0.01);
-        return;
-      } else {
-        // Click fuera del topo -> punto para jugador 2 (Pin)
-        this.puntosPlayer2 += 1;
-        this.updateScoreUI();
-        this.sound.play('Sonido_martillo');
-      }
-    }
+  if (!this.topo || !this.topo.sprite) return;
+
+  const bounds = this.topo.sprite.getBounds();
+  const clickedTopo = bounds && bounds.contains(pointer.x, pointer.y);
+
+  if (clickedTopo && this.topo.isActive) {
+    // Golpe exitoso
+    this.puntosPlayer1 += 1;
+    this.updateScoreUI();
+    this.topo.hide();
+    this.sound.play('Golpe');
+    this.sound.play('Castor');
+    this.cameras.main.shake(200, 0.01);
+    return;
+  } else {
+    // Fallo
+    this.puntosPlayer2 += 1;
+    this.updateScoreUI();
+    this.sound.play('Sonido_martillo');
+  }
+}
   }
 
   

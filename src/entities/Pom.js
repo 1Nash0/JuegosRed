@@ -1,20 +1,46 @@
-export class Pom extends Phaser.GameObjects.Image{
+export class Pom extends Phaser.GameObjects.Image {
 
-    
-     constructor(scene, id, x, y) {
+    constructor(scene, id, x, y) {
         super(scene, x, y, 'Martillo');
+
+        this.scene = scene;
+        this.id = id;
+
         this.setOrigin(0.5);
-        this.setScale(1.0);  // Ajusta el tamaño si es necesario
-        this.setDepth(5);    // Asegura que esté por encima de otros elementos
-       
-        // Añadir al scene
+        this.setScale(1.0);
+        this.setDepth(5);
+
         scene.add.existing(this);
 
-        // El martillo "escucha" al ratón
+        // Estado
+        this.isHitting = false;
+        this.hitOffset = 45;
+
+        // El martillo sigue al ratón
         scene.input.on('pointermove', (pointer) => {
-            this.x = pointer.x;
-            this.y = pointer.y;
+            if (!this.isHitting) {
+                this.x = pointer.x;
+                this.y = pointer.y;
+            }
         });
     }
 
+    hit() {
+        if (this.isHitting) return;
+
+        this.isHitting = true;
+
+        const startY = this.y;
+
+        this.scene.tweens.add({
+            targets: this,
+            y: startY + this.hitOffset,
+            duration: 80,
+            ease: 'Power3',
+            yoyo: true,
+            onComplete: () => {
+                this.isHitting = false;
+            }
+        });
+    }
 }
