@@ -209,7 +209,7 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
     // Si LMB: intentar golpear topo (si está activo) — si fallas, punto para jugador 2 (Pin)
     if (isLeft) {
 
-  // 🔨 animación del martillo SIEMPRE que se golpea
+  // animación del martillo SIEMPRE que se golpea
   if (this.martillo) {
     this.martillo.hit();
   }
@@ -306,7 +306,7 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
     const pos = this.topoHoles[index];
 
     const spriteKey = 'reloj';
-    this.powerup = this.add.image(pos.x, pos.y - 10, spriteKey).setScale(0.10).setDepth(8);
+    this.powerup = this.add.image(pos.x, pos.y - 10, spriteKey).setScale(0.15).setDepth(8);
 
     this.powerupHoleIndex = index;
     this.powerup.setInteractive({ useHandCursor: true });
