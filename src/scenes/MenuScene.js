@@ -68,6 +68,22 @@ export class MenuScene extends Phaser.Scene {
 
         });
 
+         const settingsBtn = this.add.text(500, 420, 'Ajustes', {
+            fontSize: '30px',
+            fontStyle: 'bold',
+            fontFamily: 'roboto',
+            color: '#892327',
+        }).setOrigin(0.5)
+        .setInteractive({useHandCursor: true})
+        .on('pointerover', () => settingsBtn.setColor('#00fff7ff'))
+        .on('pointerout', () => settingsBtn.setColor('#892327'))
+        .on('pointerdown', () => {
+            this.sound.add('Boton').play();
+            this.sound.stopAll();
+            this.scene.start('SettingsScene');
+
+        });
+
         /*const onlineBtn = this.add.text(500, 390, 'Multijugador online (no disponible)', {
             fontSize: '24px',
             color: '#ff6666',
