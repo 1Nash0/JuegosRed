@@ -52,7 +52,7 @@ export class MenuScene extends Phaser.Scene {
             this.scene.start('GameScene');
 
         });
-         const creditBtn = this.add.text(500, 370, 'Créditos', {
+         const creditBtn = this.add.text(500, 420, 'Créditos', {
             fontSize: '30px',
             fontStyle: 'bold',
             fontFamily: 'roboto',
@@ -68,7 +68,7 @@ export class MenuScene extends Phaser.Scene {
 
         });
 
-         const settingsBtn = this.add.text(500, 420, 'Ajustes', {
+         const settingsBtn = this.add.text(500, 480, 'Ajustes', {
             fontSize: '30px',
             fontStyle: 'bold',
             fontFamily: 'roboto',
@@ -92,19 +92,21 @@ export class MenuScene extends Phaser.Scene {
 
         //ONLINE
 
-        const onlineBtn = this.add.text(400, 390, 'Online Multiplayer', {
-                    fontSize: '24px',
-                    color: '#00ff00',
+        const onlineBtn = this.add.text(500, 370, 'Online Multiplayer', {
+                    fontSize: '30px',
+                    fontStyle: 'bold',
+                    fontFamily: 'roboto',
+                    color: '#892327',
                 }).setOrigin(0.5)
                 .setInteractive({useHandCursor: true})
-                .on('pointerover', () => onlineBtn.setColor('#00ff88'))
-                .on('pointerout', () => onlineBtn.setColor('#00ff00'))
+                .on('pointerover', () => onlineBtn.setColor('#00fff7ff'))
+                .on('pointerout', () => onlineBtn.setColor('#892327'))
                 .on('pointerdown', () => {
                     this.scene.start('LobbyScene');
                 });
         
                 // Indicador de conexión al servidor
-                this.connectionText = this.add.text(400, 500, 'Servidor: Comprobando...', {
+                this.connectionText = this.add.text(500, 530, 'Servidor: Comprobando...', {
                     fontSize: '18px',
                     color: '#ffff00'
                 }).setOrigin(0.5);
