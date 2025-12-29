@@ -28,7 +28,14 @@ export default {
   devServer: {
     static: './dist',
     hot: true,
-    port: 8080
+    port: 8080,
+    proxy: [
+      {
+        context: ['/api'],
+        target: 'http://localhost:3000',
+        changeOrigin: true
+      }
+    ]
   },
   externals: {
     phaser: 'Phaser'

@@ -2,7 +2,6 @@
   "name": "practice",
   "version": "1.0.0",
   "main": "index.js",
-  "type": "module",
   "scripts": {
     "build": "webpack --mode production",
     "dev": "webpack serve --mode development --open",

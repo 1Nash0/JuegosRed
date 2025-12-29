@@ -261,6 +261,11 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
     this.topo.sprite.on('pointerdown', () => {
       if (this.isGameOver) return;
       if (this.topo.isActive) {
+        // Animación del martillo
+        if (this.martillo) {
+          this.martillo.hit();
+        }
+
         // Golpe exitoso -> punto para jugador 1 (Pom)
         this.puntosPlayer1 += 1;
         this.updateScoreUI();

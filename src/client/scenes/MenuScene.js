@@ -18,8 +18,10 @@ export class MenuScene extends Phaser.Scene {
 
     create() {
 
-        // SONIDOS
-        this.sound.add('Musica_menu').play({ loop: true, volume: 0.5 });
+        // SONIDOS - Detener cualquier música anterior y reproducir la del menú
+        this.sound.stopAll();
+        this.musicaMenu = this.sound.add('Musica_menu');
+        this.musicaMenu.play({ loop: true, volume: 0.5 });
 
         const bg = this.add.image(0, 0, 'Titulo').setOrigin(0, 0);  //fondo(titulo)
         bg.setDisplaySize(this.scale.width, this.scale.height);
@@ -68,7 +70,7 @@ export class MenuScene extends Phaser.Scene {
 
         });
 
-         const settingsBtn = this.add.text(500, 480, 'Ajustes', {
+         const settingsBtn = this.add.text(500, 470, 'Ajustes', {
             fontSize: '30px',
             fontStyle: 'bold',
             fontFamily: 'roboto',
@@ -92,7 +94,7 @@ export class MenuScene extends Phaser.Scene {
 
         //ONLINE
 
-        const onlineBtn = this.add.text(500, 370, 'Online Multiplayer', {
+        const onlineBtn = this.add.text(500, 370, 'Multijugador en Línea', {
                     fontSize: '30px',
                     fontStyle: 'bold',
                     fontFamily: 'roboto',
@@ -141,6 +143,10 @@ export class MenuScene extends Phaser.Scene {
                 // Remover el listener
                 if (this.connectionListener) {
                     connectionManager.removeListener(this.connectionListener);
+                }
+                // Detener la música del menú
+                if (this.musicaMenu) {
+                    this.musicaMenu.stop();
                 }
             }
     }

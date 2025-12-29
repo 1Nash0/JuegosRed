@@ -30,6 +30,7 @@ export class ConnectionManager {
    */
   async checkConnection() {
     try {
+      console.log('[ConnectionManager] Checking connection...');
       const response = await fetch('/api/connected', {
         method: 'POST',
         headers: {
@@ -40,8 +41,11 @@ export class ConnectionManager {
         })
       });
 
+      console.log('[ConnectionManager] Response status:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('[ConnectionManager] Connected users:', data.connected);
         this.connectedCount = data.connected;
         this.isConnected = true;
         this.lastCheckTime = Date.now();
@@ -51,11 +55,12 @@ export class ConnectionManager {
 
         return { connected: this.connectedCount, success: true };
       } else {
+        console.log('[ConnectionManager] Response not OK, status:', response.status);
         this.handleDisconnection();
         return { connected: 0, success: false };
       }
     } catch (error) {
-      console.error('Error checking connection:', error);
+      console.error('[ConnectionManager] Error checking connection:', error);
       this.handleDisconnection();
       return { connected: 0, success: false };
     }
