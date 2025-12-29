@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-
+import { connectionManager } from '../services/ConnectionManager';
 
 export class MenuScene extends Phaser.Scene {
     constructor() {
@@ -88,5 +88,58 @@ export class MenuScene extends Phaser.Scene {
             fontSize: '24px',
             color: '#ff6666',
         }).setOrigin(0.5);*/
+
+
+        //ONLINE
+
+        const onlineBtn = this.add.text(400, 390, 'Online Multiplayer', {
+                    fontSize: '24px',
+                    color: '#00ff00',
+                }).setOrigin(0.5)
+                .setInteractive({useHandCursor: true})
+                .on('pointerover', () => onlineBtn.setColor('#00ff88'))
+                .on('pointerout', () => onlineBtn.setColor('#00ff00'))
+                .on('pointerdown', () => {
+                    this.scene.start('LobbyScene');
+                });
+        
+                // Indicador de conexión al servidor
+                this.connectionText = this.add.text(400, 500, 'Servidor: Comprobando...', {
+                    fontSize: '18px',
+                    color: '#ffff00'
+                }).setOrigin(0.5);
+        
+                // Listener para cambios de conexión
+                this.connectionListener = (data) => {
+                    this.updateConnectionDisplay(data);
+                };
+                connectionManager.addListener(this.connectionListener);
+            }
+        
+            updateConnectionDisplay(data) {
+                // Solo actualizar si el texto existe (la escena está creada)
+                if (!this.connectionText || !this.scene || !this.scene.isActive('MenuScene')) {
+                    return;
+                }
+        
+                try {
+                    if (data.connected) {
+                        this.connectionText.setText(`Servidor: ${data.count} usuario(s) conectado(s)`);
+                        this.connectionText.setColor('#00ff00');
+                    } else {
+                        this.connectionText.setText('Servidor: Desconectado');
+                        this.connectionText.setColor('#ff0000');
+                    }
+                } catch (error) {
+                    console.error('[MenuScene] Error updating connection display:', error);
+                }
+            }
+        
+            shutdown() {
+                // Remover el listener
+                if (this.connectionListener) {
+                    connectionManager.removeListener(this.connectionListener);
+                }
+            }
     }
 }

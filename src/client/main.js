@@ -4,6 +4,9 @@ import { GameScene } from './scenes/GameScene.js';
 import { PauseScene } from './scenes/PauseScene.js';
 import { CreditScene } from './scenes/CreditScene.js';
 import { SettingsScene } from './scenes/SettingsScene.js';
+import { ConnectionLostScene } from './scenes/ConnectionLostScene.js';
+import LobbyScene from './scenes/LobbyScene.js';
+import { MultiplayerGameScene } from './scenes/MultiplayerGameScene.js';
 
 const config = {
     type: Phaser.AUTO,
@@ -17,7 +20,7 @@ const config = {
             debug: false
         }
     },
-    scene: [MenuScene, GameScene, PauseScene, CreditScene, SettingsScene],
+    scene: [MenuScene, GameScene, PauseScene, CreditScene, SettingsScene, ConnectionLostScene, LobbyScene, MultiplayerGameScene],
     backgroundColor: '#1a1a2e',
 }
 

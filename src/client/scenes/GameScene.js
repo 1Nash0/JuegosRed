@@ -2,6 +2,8 @@
 import Phaser from 'phaser';
 import { Pom } from '../entities/Pom';
 import { Pin } from '../entities/Pin';
+import { CommandProcessor } from '../commands/CommandProcessor';
+import { PauseGameCommand } from '../commands/PuaseGameCommand';
 
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -32,6 +34,9 @@ export class GameScene extends Phaser.Scene {
     // timers / references
     this.topoTimer = null;
     this.gameTimer = null;
+
+    //Command
+    this.processor = new CommandProcessor();
   }
 
   preload() {
