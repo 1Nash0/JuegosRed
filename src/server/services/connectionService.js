@@ -11,7 +11,19 @@ export function createConnectionService() {
 
   // Limpiar sesiones inactivas periódicamente
   const cleanupInterval = setInterval(() => {
-    // Implementar
+    const now = Date.now();
+    let removedCount = 0;
+    
+    for (const [sessionId, lastActivity] of connectedSessions.entries()) {
+      if (now - lastActivity > CONNECTION_TIMEOUT) {
+        connectedSessions.delete(sessionId);
+        removedCount++;
+      }
+    }
+    
+    if (removedCount > 0) {
+      console.log(`[ConnectionService] Limpiadas ${removedCount} sesiones inactivas. Sesiones activas: ${connectedSessions.size}`);
+    }
   }, CLEANUP_INTERVAL);
 
   return {
