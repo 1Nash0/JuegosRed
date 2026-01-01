@@ -18,10 +18,18 @@ export class MenuScene extends Phaser.Scene {
 
     create() {
 
-        // SONIDOS - Detener cualquier música anterior y reproducir la del menú
-        this.sound.stopAll();
-        this.musicaMenu = this.sound.add('Musica_menu');
-        this.musicaMenu.play({ loop: true, volume: 0.5 });
+        // SONIDOS - Si ya hay música de menú sonando, reutilizarla; si no, detener y crearla
+        // @ts-ignore - propiedad adjunta al objeto game en tiempo de ejecución
+        const existingMusic = this.game && this.game.musicaMenu;
+        if (existingMusic && existingMusic.isPlaying) {
+            this.musicaMenu = existingMusic;
+        } else {
+            this.sound.stopAll();
+            this.musicaMenu = this.sound.add('Musica_menu');
+            this.musicaMenu.play({ loop: true, volume: 0.5 });
+            // @ts-ignore - añadimos propiedad al objeto game en tiempo de ejecución
+            this.game.musicaMenu = this.musicaMenu;
+        }
 
         const bg = this.add.image(0, 0, 'Titulo').setOrigin(0, 0);  //fondo(titulo)
         bg.setDisplaySize(this.scale.width, this.scale.height);
@@ -80,9 +88,7 @@ export class MenuScene extends Phaser.Scene {
         .on('pointerover', () => settingsBtn.setColor('#00fff7ff'))
         .on('pointerout', () => settingsBtn.setColor('#892327'))
         .on('pointerdown', () => {
-            this.sound.add('Boton').play();
-            this.sound.stopAll();
-            this.scene.start('SettingsScene');
+            this.scene.start('SettingsScene', { from: 'menu' });
 
         });
 
@@ -144,9 +150,7 @@ export class MenuScene extends Phaser.Scene {
                 if (this.connectionListener) {
                     connectionManager.removeListener(this.connectionListener);
                 }
-                // Detener la música del menú
-                if (this.musicaMenu) {
-                    this.musicaMenu.stop();
-                }
+                    // Nota: no detener la música aquí para que siga sonando cuando vayamos a Ajustes
+                // Si quieres detener la música al cerrar el menú de forma definitiva, deténla antes de iniciar la nueva escena (ej. GameScene).
             }
     }

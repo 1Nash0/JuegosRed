@@ -71,7 +71,9 @@ export class GameScene extends Phaser.Scene {
 
     // Sonido de fondo
    this.musicaNivel = this.sound.add('Musica_nivel');
-this.musicaNivel.play({ loop: true, volume: 0.5 });
+    this.musicaNivel.play({ loop: true, volume: 0.5 });
+    // Exponer la instancia globalmente para que ajustes de volumen en Ajustes la afecten
+    this.game.musicaNivel = this.musicaNivel;
 
 
     // Cursor: ocultamos por defecto; la entidad Pom puede mostrar su propio sprite

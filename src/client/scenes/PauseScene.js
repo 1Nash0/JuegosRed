@@ -37,12 +37,11 @@ export class PauseScene extends Phaser.Scene {
 
         const resumeBtn = this.createButton(cx, cy - 40, 'REANUDAR', 0x00cc66, 0x66ffb2);
         const menuBtn = this.createButton(cx, cy + 40, 'MENÚ PRINCIPAL', 0xff6b6b, 0xff9a9a);
-        const exitBtn = this.createButton(cx, cy + 120, 'SALIR', 0xffffff, 0xcccccc);
+        const settingsBtn = this.createButton(cx, cy + 120, 'AJUSTES', 0xffffff, 0xcccccc);
 
         resumeBtn.setDepth(10);
         menuBtn.setDepth(10);
-        exitBtn.setDepth(10);
-
+        settingsBtn.setDepth(10);
         resumeBtn.on('pointerdown', () => {
             if (this.game && this.game.canvas && this.game.canvas.style) {
                 this.game.canvas.style.cursor = this._prevCursor || 'auto';
@@ -61,8 +60,9 @@ export class PauseScene extends Phaser.Scene {
             this.sound.stopAll();
         });
 
-        exitBtn.on('pointerdown', () => {
-            this.game.destroy(true);
+        settingsBtn.on('pointerdown', () => {
+             // Indicar que venimos del menú de pausa y pasar la escena original para poder reanudarla al volver
+             this.scene.start('SettingsScene', { from: 'pause', originalScene: data.originalScene });
         });
 
         this._escHandler = () => resumeBtn.emit('pointerdown');
