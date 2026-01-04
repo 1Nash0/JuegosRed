@@ -28,6 +28,10 @@ export function createUserService() {
       name: userData.name,
       avatar: userData.avatar || '',
       level: userData.level || 1,
+      // Player-specific fields required by GDD phase 3
+      color: userData.color || 'blue',
+      maxScore: typeof userData.maxScore === 'number' ? userData.maxScore : 0,
+      bestTime: userData.bestTime || null,
       createdAt: new Date().toISOString()
     };
 
@@ -46,9 +50,8 @@ export function createUserService() {
    * @returns {Array} Array de usuarios
    */
   function getAllUsers() {
-    // TODO: Implementar
-    // Retornar una copia del array de usuarios
-    throw new Error('getAllUsers() no implementado');
+    // Retornar una copia del array de usuarios para evitar mutaciones externas
+    return users.map(u => ({ ...u }));
   }
 
   /**
@@ -67,10 +70,8 @@ export function createUserService() {
    * @returns {Object|null} Usuario encontrado o null
    */
   function getUserByEmail(email) {
-    // TODO: Implementar
-    // Buscar y retornar el usuario por email, o null si no existe
-    // IMPORTANTE: Esta función será usada por el chat para verificar emails
-    throw new Error('getUserByEmail() no implementado');
+    const user = users.find(u => u.email === email);
+    return user || null;
   }
 
   /**
@@ -80,13 +81,19 @@ export function createUserService() {
    * @returns {Object|null} Usuario actualizado o null si no existe
    */
   function updateUser(id, updates) {
-    // TODO: Implementar
-    // 1. Buscar el usuario por id
-    // 2. Si no existe, retornar null
-    // 3. Actualizar solo los campos permitidos (name, avatar, level)
-    // 4. NO permitir actualizar id, email, o createdAt
-    // 5. Retornar el usuario actualizado
-    throw new Error('updateUser() no implementado');
+    const user = users.find(u => u.id === id);
+    if (!user) return null;
+
+    // Campos permitidos para actualizar
+    const allowed = ['name', 'avatar', 'level', 'color', 'maxScore', 'bestTime'];
+
+    for (const key of allowed) {
+      if (updates[key] !== undefined) {
+        user[key] = updates[key];
+      }
+    }
+
+    return { ...user };
   }
 
   /**
@@ -95,11 +102,11 @@ export function createUserService() {
    * @returns {boolean} true si se eliminó, false si no existía
    */
   function deleteUser(id) {
-    // TODO: Implementar
-    // 1. Buscar el índice del usuario
-    // 2. Si existe, eliminarlo del array
-    // 3. Retornar true si se eliminó, false si no existía
-    throw new Error('deleteUser() no implementado');
+    const idx = users.findIndex(u => u.id === id);
+    if (idx === -1) return false;
+
+    users.splice(idx, 1);
+    return true;
   }
 
   // Exponer la API pública del servicio

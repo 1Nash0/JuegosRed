@@ -13,6 +13,9 @@ export function createUserRoutes(userController) {
   // POST /api/users - Crear nuevo usuario
   router.post('/', userController.create);
 
+  // POST /api/users/login - Login (crea usuario si no existe)
+  router.post('/login', userController.login);
+
   // GET /api/users - Obtener todos los usuarios
   router.get('/', userController.getAll);
 

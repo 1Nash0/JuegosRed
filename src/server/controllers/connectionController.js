@@ -20,6 +20,8 @@ export function createConnectionController(connectionService) {
       // Actualizar el timestamp de la última conexión de esta sesión
       const connectedCount = connectionService.updateConnection(sessionId);
 
+      console.log(`[ConnectionController] session ${sessionId} checked in. Connected sessions: ${connectedCount}`);
+
       res.json({
         connected: connectedCount
       });

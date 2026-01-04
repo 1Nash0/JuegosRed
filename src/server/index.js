@@ -172,13 +172,30 @@ server.listen(PORT, () => {
   console.log(`  `);
   console.log(`  API Endpoints disponibles:`);
   console.log(`   - GET    /health`);
-  console.log(`   - GET    /api/connected`);
+  console.log(`   - POST   /api/connected`);
   console.log(`   - GET    /api/users`);
   console.log(`   - POST   /api/users`);
+  console.log(`   - POST   /api/users/login`);
   console.log(`   - GET    /api/users/:id`);
   console.log(`   - PUT    /api/users/:id`);
   console.log(`   - DELETE /api/users/:id`);
   console.log(`   - GET    /api/messages`);
   console.log(`   - POST   /api/messages`);
   console.log('========================================\n');
+});
+
+// Manejo de errores globales y shutdown limpio
+process.on('unhandledRejection', (reason) => {
+  console.error('[Process] Unhandled Rejection:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('[Process] Uncaught Exception:', err);
+  process.exit(1);
+});
+
+process.on('SIGINT', () => {
+  console.log('[Process] SIGINT received. Shutting down...');
+  connectionService.stopCleanup();
+  server.close(() => process.exit(0));
 });

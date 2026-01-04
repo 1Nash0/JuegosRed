@@ -37,14 +37,38 @@ export function createUserController(userService) {
   }
 
   /**
+   * POST /api/users/login - Login (crear usuario si no existe)
+   */
+  async function login(req, res, next) {
+    try {
+      const { email, name } = req.body;
+      if (!email || !name) {
+        return res.status(400).json({ error: 'email y name son requeridos' });
+      }
+
+      // Si ya existe el usuario, devolverlo
+      const existing = userService.getUserByEmail(email);
+      if (existing) {
+        console.log(`[UserController] Login existente: ${email}`);
+        return res.status(200).json(existing);
+      }
+
+      // Si no existe, crear uno nuevo
+      const newUser = userService.createUser({ email, name });
+      console.log(`[UserController] Nuevo usuario creado por login: ${email}`);
+      return res.status(201).json(newUser);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
    * GET /api/users - Obtener todos los usuarios
    */
   async function getAll(req, res, next) {
     try {
-      // TODO: Implementar
-      // 1. Llamar a userService.getAllUsers()
-      // 2. Retornar 200 con el array de usuarios
-      throw new Error('getAll() no implementado');
+      const users = userService.getAllUsers();
+      res.status(200).json(users);
     } catch (error) {
       next(error);
     }
@@ -80,13 +104,21 @@ export function createUserController(userService) {
    */
   async function update(req, res, next) {
     try {
-      // TODO: Implementar
-      // 1. Extraer el id de req.params
-      // 2. Extraer los campos a actualizar del body
-      // 3. Llamar a userService.updateUser()
-      // 4. Si no existe, retornar 404
-      // 5. Si existe, retornar 200 con el usuario actualizado
-      throw new Error('update() no implementado');
+      const { id } = req.params;
+      const updates = req.body;
+
+      // Proteger campos que no se deben actualizar
+      delete updates.id;
+      delete updates.email;
+      delete updates.createdAt;
+
+      const updated = userService.updateUser(id, updates);
+      if (!updated) {
+        return res.status(404).json({ error: 'Usuario no encontrado' });
+      }
+
+      console.log(`[UserController] Usuario ${id} actualizado`);
+      res.status(200).json(updated);
     } catch (error) {
       next(error);
     }
@@ -97,12 +129,15 @@ export function createUserController(userService) {
    */
   async function remove(req, res, next) {
     try {
-      // TODO: Implementar
-      // 1. Extraer el id de req.params
-      // 2. Llamar a userService.deleteUser()
-      // 3. Si no existía, retornar 404
-      // 4. Si se eliminó, retornar 204 (No Content)
-      throw new Error('remove() no implementado');
+      const { id } = req.params;
+      const deleted = userService.deleteUser(id);
+
+      if (!deleted) {
+        return res.status(404).json({ error: 'Usuario no encontrado' });
+      }
+
+      console.log(`[UserController] Usuario ${id} eliminado`);
+      res.status(204).send();
     } catch (error) {
       next(error);
     }
@@ -111,6 +146,7 @@ export function createUserController(userService) {
   // Exponer la API pública del controlador
   return {
     create,
+    login,
     getAll,
     getById,
     update,
