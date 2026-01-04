@@ -8,13 +8,17 @@ export function createMatchmakingService(gameRoomService) {
    * Add a player to the matchmaking queue
    * @param {WebSocket} ws - The WebSocket connection
    */
-  function joinQueue(ws) {
+  function joinQueue(ws, playerInfo = null) {
     // Check if already in queue
-    if (queue.some(player => player.ws === ws)) {
+    if (queue.some(entry => entry.ws === ws)) {
       return;
     }
 
-    queue.push({ ws });
+    const entry = { ws, player: playerInfo };
+    queue.push(entry);
+
+    // Log join
+    console.log(`[Matchmaking] Player joined queue${playerInfo && playerInfo.name ? ' - ' + playerInfo.name : ''}. Queue size: ${queue.length}`);
 
     // Notify player they're in queue
     ws.send(JSON.stringify({

@@ -65,8 +65,21 @@ export default class LobbyScene extends Phaser.Scene {
         console.log('Connected to WebSocket server');
         this.statusText.setText('Waiting for opponent...');
 
-        // Join matchmaking queue
-        this.ws.send(JSON.stringify({ type: 'joinQueue' }));
+        // Join matchmaking queue, include logged user info if available
+        let player = null;
+        try {
+          const raw = localStorage.getItem('playerUser');
+          if (raw) player = JSON.parse(raw);
+        } catch (e) {
+          console.warn('LobbyScene: error parsing stored player', e);
+        }
+
+        this.ws.send(JSON.stringify({ type: 'joinQueue', player }));
+
+        // Display player name if known
+        if (player && player.name) {
+          this.add.text(this.cameras.main.width - 20, 20, `Jugador: ${player.name}`, { fontSize: '16px', color: '#ffffff' }).setOrigin(1, 0);
+        }
       };
 
       this.ws.onmessage = (event) => {

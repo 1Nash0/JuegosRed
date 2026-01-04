@@ -125,7 +125,9 @@ wss.on('connection', (ws) => {
 
       switch (data.type) {
         case 'joinQueue':
-          matchmakingService.joinQueue(ws);
+          // Attach player info if provided and pass to matchmaking
+          const playerInfo = data.player || null;
+          matchmakingService.joinQueue(ws, playerInfo);
           break;
 
         case 'leaveQueue':
