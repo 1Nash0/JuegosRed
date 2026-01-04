@@ -37,16 +37,22 @@ connectionManager.addListener((data) => {
         return;
       }
 
-      // Buscar una escena activa para pausar (excluir ConnectionLostScene)
+      // Pausar todas las escenas activas (excluir ConnectionLostScene)
       const activeScenes = game.scene.getScenes(true);
-      const previous = activeScenes.find(s => s.scene && s.scene.key && s.scene.key !== 'ConnectionLostScene');
-      const previousKey = previous ? previous.scene.key : null;
+      const previousKeys = activeScenes
+        .filter(s => s.scene && s.scene.key && s.scene.key !== 'ConnectionLostScene')
+        .map(s => s.scene.key);
 
-      if (previousKey) {
-        game.scene.pause(previousKey);
-      }
+      previousKeys.forEach(key => {
+        try {
+          game.scene.pause(key);
+        } catch (e) {
+          console.warn(`[Main] Unable to pause scene ${key}:`, e);
+        }
+      });
 
-      game.scene.start('ConnectionLostScene', { previousScene: previousKey });
+      // Iniciar la escena de conexión perdida pasando las escenas pausadas
+      game.scene.start('ConnectionLostScene', { previousScenes: previousKeys });
     } catch (err) {
       console.error('[Main] Error handling connection loss:', err);
     }
