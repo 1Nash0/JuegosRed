@@ -175,6 +175,16 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
       }
     });
 
+    // Evento topo missed: cuando el topo desaparece sin ser golpeado, punto para P2
+    this.events.off('topoMissed'); // aseguramos que no haya duplicados
+    this.events.on('topoMissed', (data = {}) => {
+      if (this.isGameOver) return;
+      if (!this.pinBlocked) {
+        this.puntosPlayer2 += 1;
+        this.updateScoreUI();
+      }
+    });
+
     // Input pointer: manejador único
     this.input.on('pointerdown', (pointer) => this.handlePointerDown(pointer));
 
@@ -285,7 +295,9 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
 
     // El Pin (topo) debe manejar su propio pointerdown; lo conectamos aquí de forma segura:
     this.topo.sprite.setInteractive();
-    this.topo.sprite.on('pointerdown', () => {
+    this.topo.sprite.on('pointerdown', (pointer, localX, localY, event) => {
+      // Evitar que el evento burbujee al input global
+      try { if (event && event.stopPropagation) event.stopPropagation(); } catch (e) {}
       if (this.isGameOver) return;
       if (this.topo.isActive && !this.pinBlocked) {
         // Golpe exitoso -> punto para jugador 1 (Pom)
@@ -297,11 +309,16 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
           this.martillo.hit();
         }
 
-        // Oculta topo, reproduce sonidos y efecto
-        this.topo.hide();
+        // Marcar el topo como golpeado y procesar el golpe
+        if (typeof this.topo.hit === 'function') {
+          this.topo.hit();
+        } else {
+          this.topo.hide();
+        }
+
+        // Sonidos y efecto
         this.sound.play('Golpe');
         this.sound.play('Castor');
-        
 
         this.cameras.main.shake(200, 0.01);
       }

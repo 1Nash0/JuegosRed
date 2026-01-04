@@ -17,9 +17,9 @@ export class Pom extends Phaser.GameObjects.Image {
         this.isHitting = false;
         this.hitOffset = 45;
 
-        // El martillo sigue al ratón
+        // El martillo sigue al ratón (pero se bloquea si thermometerEffectActive está activo)
         scene.input.on('pointermove', (pointer) => {
-            if (!this.isHitting) {
+            if (!this.isHitting && !this.scene.thermometerEffectActive) {
                 this.x = pointer.x;
                 this.y = pointer.y;
             }

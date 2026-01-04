@@ -24,10 +24,6 @@ export class Pin {
         this.sprite.setOrigin(0.5);
         this.sprite.setDepth(2);
 
-        // Usar srpite de pingolpeado para cuando es golpeado
-        this.hitSprite = this.scene.physics.add.sprite(x, y, 'Pingolpeado');
-        this.hitSprite.setImmovable(true);
-        this.hitSprite.setScale(0.5);
 
         // Preparar callback pero NO dejar el sprite interactivo mientras esté oculto
         this._onHitCallback = () => this.hit();
@@ -82,7 +78,7 @@ export class Pin {
 
         this.isActive = true;
         this.health = 1;
-        this._wasHit = false; // resetear cuando aparece
+        this._wasHit = false; // resetear: no ha sido golpeado aún
         this.sprite.setVisible(true);
 
         // Activar interacción solo cuando es visible
@@ -115,24 +111,38 @@ export class Pin {
 
     // El topo se esconde en el agujero
     hide() {
+        if (!this.isActive) return; // Si ya estaba inactivo, no hacer nada
+        
         this.isActive = false;
         this.sprite.setVisible(false);
-        this.hitSprite.setVisible(false);
         // Desactivar interacción cuando está oculto
         this.sprite.disableInteractive();
+        
+        // Si no fue golpeado, emitir evento de "miss" (el jugador 2 gana punto)
+        if (!this._wasHit) {
+            try {
+                this.scene.events.emit('topoMissed', {
+                    id: this.id,
+                    holeIndex: this.currentHoleIndex
+                });
+            } catch (e) {
+                console.warn('Emit topoMissed failed', e);
+            }
+        }
     }
 
     // Cuando se golpea al topo - retorna true si fue golpeado
     hit() {
         if (!this.isActive) return false;
 
+        this._wasHit = true; // Marcar que fue golpeado
         this.health -= 1;
         this.sprite.setTint(0xff0000); // Parpadea rojo 
-        this.hitSprite.setPosition(this.sprite.x, this.sprite.y);
-        this.hitSprite.setVisible(true);
+        
         
         this.scene.time.delayedCall(100, () => {
             this.sprite.clearTint();
+            
         });
 
         if (this.health <= 0) {
