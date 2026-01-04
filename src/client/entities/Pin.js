@@ -24,6 +24,11 @@ export class Pin {
         this.sprite.setOrigin(0.5);
         this.sprite.setDepth(2);
 
+        // Usar srpite de pingolpeado para cuando es golpeado
+        this.hitSprite = this.scene.physics.add.sprite(x, y, 'Pingolpeado');
+        this.hitSprite.setImmovable(true);
+        this.hitSprite.setScale(0.5);
+
         // Preparar callback pero NO dejar el sprite interactivo mientras esté oculto
         this._onHitCallback = () => this.hit();
         this._pointerRegistered = false;
@@ -112,6 +117,7 @@ export class Pin {
     hide() {
         this.isActive = false;
         this.sprite.setVisible(false);
+        this.hitSprite.setVisible(false);
         // Desactivar interacción cuando está oculto
         this.sprite.disableInteractive();
     }
@@ -121,7 +127,9 @@ export class Pin {
         if (!this.isActive) return false;
 
         this.health -= 1;
-        this.sprite.setTint(0xff0000); // Parpadea rojo
+        this.sprite.setTint(0xff0000); // Parpadea rojo 
+        this.hitSprite.setPosition(this.sprite.x, this.sprite.y);
+        this.hitSprite.setVisible(true);
         
         this.scene.time.delayedCall(100, () => {
             this.sprite.clearTint();

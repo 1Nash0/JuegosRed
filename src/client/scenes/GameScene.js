@@ -5,6 +5,9 @@ import { Pin } from '../entities/Pin';
 import { CommandProcessor } from '../commands/CommandProcessor';
 import { PauseGameCommand } from '../commands/PuaseGameCommand';
 
+const POWERUP_CLOCK = 'clock';
+const POWERUP_THERMOMETER = 'thermometer';
+
 export class GameScene extends Phaser.Scene {
   constructor() {
     super('GameScene');
@@ -15,21 +18,31 @@ export class GameScene extends Phaser.Scene {
     this.timeLeft = 60; // segundos
     this.isGameOver = false;
 
-    // Scores (Opción A: Jugador 1 = Pom, Jugador 2 = Pin)
+    // Scores
     this.puntosPlayer1 = 0; // Pom
     this.puntosPlayer2 = 0; // Pin
 
     // Powerup config & state
     this.powerupAmount = 20;
-    this.powerupMaxStored = 3;
-    this.powerupStoredP1 = 0;
-    this.powerupStoredP2 = 0;
+    this.powerupMaxStoredP1 = 3;
+    this.powerupMaxStoredP2 = 3;
+    this.powerupStoredP1 = [];
+    this.powerupStoredP2 = [];
+    this.powerupsUsedP1 = 0;
+    this.powerupsUsedP2 = 0;
+    this.powerupsUSADOSP1 = 0;
+    this.powerupsUSADOSP2 = 0;
 
     this.powerup = null;
     this.powerupHoleIndex = -1;
     this.powerupDuration = 5000;
     this.powerupSpawnMin = 4000;
     this.powerupSpawnMax = 12000;
+
+    // Thermometer effect
+    this.thermometerEffectActive = false;
+    this.pinBlocked = false;
+    this.thermometerTimer = null;
 
     // timers / references
     this.topoTimer = null;
@@ -44,8 +57,10 @@ export class GameScene extends Phaser.Scene {
     this.load.image('fondo', 'assets/fondo_game.png');
     this.load.image('Martillo', 'assets/mazo.png');
     this.load.image('bojack', 'assets/pin.png');
+    this.load.image('Pingolpeado', 'assets/pingolpeado.png');
     this.load.image('reloj', 'assets/reloj.png');
     this.load.image('agujero', 'assets/agujero.png');
+    this.load.image('termometro', 'assets/termometro.png');
 
     // SONIDOS
     this.load.audio('Musica_nivel', 'assets/Sonidos para_red/Hydrogen.mp3');
@@ -71,9 +86,7 @@ export class GameScene extends Phaser.Scene {
 
     // Sonido de fondo
    this.musicaNivel = this.sound.add('Musica_nivel');
-    this.musicaNivel.play({ loop: true, volume: 0.5 });
-    // Exponer la instancia globalmente para que ajustes de volumen en Ajustes la afecten
-    this.game.musicaNivel = this.musicaNivel;
+this.musicaNivel.play({ loop: true, volume: 0.5 });
 
 
     // Cursor: ocultamos por defecto; la entidad Pom puede mostrar su propio sprite
@@ -89,7 +102,7 @@ export class GameScene extends Phaser.Scene {
 );
 
 
-    // Scores (consistentes con Opción A)
+    // Scores arriba a la izquierda y derecha
     this.scorePlayer1 = this.add.text(80, 50, 'Pom: 0', {
       fontSize: '32px',
       color: '#6a7cb4ff',
@@ -113,14 +126,14 @@ export class GameScene extends Phaser.Scene {
     ).setOrigin(1, 1);
 
     // Powerup UI
-    this.powerupTextP1 = this.add.text(80, 80, `P1 Powerups: ${this.powerupStoredP1}/${this.powerupMaxStored}`, {
+    this.powerupTextP1 = this.add.text(80, 80, `P1 Powerups: ${this.powerupStoredP1}/${this.powerupMaxStoredP1}`, {
       fontSize: '16px',
       color: '#6a7cb4ff',
       fontStyle: 'bold',
       fontFamily: 'Arial'
     }).setOrigin(0, 0);
 
-    this.powerupTextP2 = this.add.text(this.scale.width + 20, 80, `P2 Powerups: ${this.powerupStoredP2}/${this.powerupMaxStored}`, {
+    this.powerupTextP2 = this.add.text(this.scale.width + 20, 80, `P2 Powerups: ${this.powerupStoredP2}/${this.powerupMaxStoredP2}`, {
       fontSize: '16px',
       color: '#9e4b4bff',
       fontStyle: 'bold',
@@ -194,7 +207,7 @@ export class GameScene extends Phaser.Scene {
       const pBounds = this.powerup.sprite.getBounds();
       if (pBounds && pBounds.contains(pointer.x, pointer.y)) {
         if (isLeft) {
-          this.pickupPowerupByPlayer(1); // Pom recoge con LMB
+          this.pickupPowerupByPlayer(1); // Pin recoge con LMB
           return;
         }
         if (isRight) {
@@ -207,13 +220,13 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    // Si se hace RMB en otro sitio: usar powerup P1
+    // Si se hace RMB en otro sitio: usar powerup P1 (Pom)
     if (isRight) {
       this.usePowerupByPlayer(1);
       return;
     }
 
-    // Si LMB: intentar golpear topo (si está activo) — si fallas, punto para jugador 2 (Pin)
+    // Si LMB: intentar golpear topo (si está activo) — si fallas, punto para jugador 2 (Pom)
     if (isLeft) {
 
   // animación del martillo SIEMPRE que se golpea
@@ -224,7 +237,13 @@ export class GameScene extends Phaser.Scene {
   if (!this.topo || !this.topo.sprite) return;
 
   const bounds = this.topo.sprite.getBounds();
-  const clickedTopo = bounds && bounds.contains(pointer.x, pointer.y);
+  const smallerBounds = new Phaser.Geom.Rectangle(
+    bounds.x + bounds.width * 0.25,
+    bounds.y + bounds.height * 0.25,
+    bounds.width * 0.5,
+    bounds.height * 0.5
+  );
+  const clickedTopo = smallerBounds.contains(pointer.x, pointer.y);
 
   if (clickedTopo && this.topo.isActive) {
     // Golpe exitoso
@@ -237,9 +256,11 @@ export class GameScene extends Phaser.Scene {
     return;
   } else {
     // Fallo
-    this.puntosPlayer2 += 1;
-    this.updateScoreUI();
-    this.sound.play('Sonido_martillo');
+    if (!this.pinBlocked) {
+      this.puntosPlayer2 += 1;
+      this.updateScoreUI();
+      this.sound.play('Sonido_martillo');
+    }
   }
 }
   }
@@ -262,12 +283,7 @@ export class GameScene extends Phaser.Scene {
     this.topo.sprite.setInteractive();
     this.topo.sprite.on('pointerdown', () => {
       if (this.isGameOver) return;
-      if (this.topo.isActive) {
-        // Animación del martillo
-        if (this.martillo) {
-          this.martillo.hit();
-        }
-
+      if (this.topo.isActive && !this.pinBlocked) {
         // Golpe exitoso -> punto para jugador 1 (Pom)
         this.puntosPlayer1 += 1;
         this.updateScoreUI();
@@ -301,7 +317,8 @@ export class GameScene extends Phaser.Scene {
   scheduleNextPowerup() {
     if (this.isGameOver) return;
     if (this.powerup) return;
-    if (this.powerupMaxStored <= 0) return; // No programar si máximo es 0
+    if (this.powerupMaxStoredP1 <= 0) return;
+    if (this.powerupMaxStoredP2 <= 0) return;
 
     const delay = Phaser.Math.Between(this.powerupSpawnMin, this.powerupSpawnMax);
     this.time.delayedCall(delay, () => {
@@ -317,13 +334,23 @@ export class GameScene extends Phaser.Scene {
     const index = Phaser.Math.Between(0, this.topoHoles.length - 1);
     const pos = this.topoHoles[index];
 
-    const spriteKey = 'reloj';
+    // Elegir tipo aleatoriamente
+    const powerupTypes = [POWERUP_CLOCK, POWERUP_THERMOMETER];
+    this.currentPowerupType = powerupTypes[Phaser.Math.Between(0, powerupTypes.length - 1)];
+
+    let spriteKey;
+    if (this.currentPowerupType === POWERUP_CLOCK) {
+      spriteKey = 'reloj';
+    } else if (this.currentPowerupType === POWERUP_THERMOMETER) {
+      spriteKey = 'termometro';
+    }
+
     this.powerup = this.add.image(pos.x, pos.y - 10, spriteKey).setScale(0.15).setDepth(8);
 
     this.powerupHoleIndex = index;
     this.powerup.setInteractive({ useHandCursor: true });
 
-    // Evento click en powerup: Jugador 1 (LMB) recoge
+    // Evento click en powerup: Jugador 1 (Pin) (LMB) recoge
     this.powerup.on('pointerdown', (pointer) => {
       if (this.isGameOver) return;
       const isLeft = pointer.button === 0 || (pointer.event && pointer.event.button === 0);
@@ -357,12 +384,17 @@ export class GameScene extends Phaser.Scene {
     if (!this.powerup) return false;
     if (this.isGameOver) return false;
 
+    // Termómetro solo puede ser recogido por Pom (P2)
+    if (this.currentPowerupType === POWERUP_THERMOMETER && playerId !== 2) return false;
+
     if (playerId === 1) {
-      if (this.powerupStoredP1 >= this.powerupMaxStored) return false;
-      this.powerupStoredP1 += 1;
+      if (this.powerupsUsedP1 >= 3) return false;
+      if (this.powerupStoredP1.length >= this.powerupMaxStoredP1) return false;
+      this.powerupStoredP1.push(this.currentPowerupType);
     } else {
-      if (this.powerupStoredP2 >= this.powerupMaxStored) return false;
-      this.powerupStoredP2 += 1;
+      if (this.powerupsUsedP2 >= 3) return false;
+      if (this.powerupStoredP2.length >= this.powerupMaxStoredP2) return false;
+      this.powerupStoredP2.push(this.currentPowerupType);
     }
 
     // Sonido al recoger powerup
@@ -384,21 +416,45 @@ export class GameScene extends Phaser.Scene {
   usePowerupByPlayer(playerId) {
     if (this.isGameOver) return false;
 
+    let powerupType;
     if (playerId === 1) {
-      if (this.powerupStoredP1 <= 0) return false;
-      this.powerupStoredP1 -= 1;
-      // Reducir máximo disponible
-      if (this.powerupMaxStored > 0) this.powerupMaxStored -= 1;
+      if (this.powerupStoredP1.length <= 0) return false;
+      powerupType = this.powerupStoredP1.pop();
+      if(this.powerupMaxStoredP1>0)
+        this.powerupMaxStoredP1--;
     } else {
-      if (this.powerupStoredP2 <= 0) return false;
-      this.powerupStoredP2 -= 1;
-      // Reducir máximo disponible
-      if (this.powerupMaxStored > 0) this.powerupMaxStored -= 1;
+      if (this.powerupStoredP2.length <= 0) return false;
+      powerupType = this.powerupStoredP2.pop();
+      if(this.powerupMaxStoredP2>0)
+        this.powerupMaxStoredP2--;
     }
 
-    // Apply effect: aumentar tiempo
-    this.timeLeft += this.powerupAmount;
-    this.timerText.setText(this.formatTime(this.timeLeft));
+    // Apply effect based on type
+    if (powerupType === POWERUP_CLOCK) {
+      // Aumentar tiempo
+      this.timeLeft += this.powerupAmount;
+      this.timerText.setText(this.formatTime(this.timeLeft));
+    } else if (powerupType === POWERUP_THERMOMETER) {
+      // Activar efecto del termómetro
+      this.thermometerEffectActive = true;
+      this.pinBlocked = true;
+      this.thermometerTimer = this.time.addEvent({
+        delay: 1000,
+        repeat: 3, // 4 ticks: 0,1,2,3
+        callback: () => {
+          this.puntosPlayer2 += 2;
+          this.updateScoreUI();
+        }
+      });
+      this.time.delayedCall(4000, () => {
+        this.thermometerEffectActive = false;
+        this.pinBlocked = false;
+        if (this.thermometerTimer) {
+          this.thermometerTimer.destroy();
+          this.thermometerTimer = null;
+        }
+      });
+    }
 
     // feedback visual y sonoro
     this.cameras.main.flash(150, 100, 255, 100);
@@ -407,6 +463,13 @@ export class GameScene extends Phaser.Scene {
     // actualizar UI
     this.updatePowerupUI();
 
+    // incrementar contador de powerups usados
+    if (playerId === 1) {
+      this.powerupsUsedP1++;
+    } else {
+      this.powerupsUsedP2++;
+    }
+
     return true;
   }
 
@@ -414,14 +477,14 @@ export class GameScene extends Phaser.Scene {
   // UI update helpers
   // ----------------------
   updateScoreUI() {
-    // Consistencia con Opción A
+    // Consistencia con asignación: P1 = Pom, P2 = Pin
     if (this.scorePlayer1) this.scorePlayer1.setText(`Pom: ${this.puntosPlayer1}`);
     if (this.scorePlayer2) this.scorePlayer2.setText(`Pin: ${this.puntosPlayer2}`);
   }
 
   updatePowerupUI() {
-    if (this.powerupTextP1) this.powerupTextP1.setText(`P1 Powerups: ${this.powerupStoredP1}/${this.powerupMaxStored}`);
-    if (this.powerupTextP2) this.powerupTextP2.setText(`P2 Powerups: ${this.powerupStoredP2}/${this.powerupMaxStored}`);
+    if (this.powerupTextP1) this.powerupTextP1.setText(`P1 Powerups: ${this.powerupStoredP1.length}/${this.powerupMaxStoredP1}`);
+    if (this.powerupTextP2) this.powerupTextP2.setText(`P2 Powerups: ${this.powerupStoredP2.length}/${this.powerupMaxStoredP2}`);
   }
 
   // ----------------------
@@ -439,14 +502,14 @@ export class GameScene extends Phaser.Scene {
   update() {
     if (this.isGameOver) return;
 
-    // Manejo teclas 1-5: mover topo (solo si topo está disponible)
+    // Manejo teclas 1-6: mover topo (solo si topo está disponible)
     if (this.topo) {
-      if (Phaser.Input.Keyboard.JustDown(this.keys.one)) this.topo.moveToHole(0);
-      if (Phaser.Input.Keyboard.JustDown(this.keys.two)) this.topo.moveToHole(1);
-      if (Phaser.Input.Keyboard.JustDown(this.keys.three)) this.topo.moveToHole(2);
-      if (Phaser.Input.Keyboard.JustDown(this.keys.four)) this.topo.moveToHole(3);
-      if (Phaser.Input.Keyboard.JustDown(this.keys.five)) this.topo.moveToHole(4);
-      if (Phaser.Input.Keyboard.JustDown(this.keys.six)) this.topo.moveToHole(5);
+      if (this.keys.one.isDown) this.topo.moveToHole(0);
+      if (this.keys.two.isDown) this.topo.moveToHole(1);
+      if (this.keys.three.isDown) this.topo.moveToHole(2);
+      if (this.keys.four.isDown) this.topo.moveToHole(3);
+      if (this.keys.five.isDown) this.topo.moveToHole(4);
+      if (this.keys.six.isDown) this.topo.moveToHole(5);
     }
 
     // ESC para pausar
@@ -647,4 +710,5 @@ endRound() {
     // reactivar input pointer
     this.input.on('pointerdown', (pointer) => this.handlePointerDown(pointer));
   }
+
 }

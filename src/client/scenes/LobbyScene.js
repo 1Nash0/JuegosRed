@@ -12,13 +12,13 @@ export default class LobbyScene extends Phaser.Scene {
     const height = this.cameras.main.height;
 
     // Title
-    this.add.text(width / 2, 100, 'Online Multiplayer', {
+    this.add.text(width / 2, 100, 'Multijugador En línea', {
       fontSize: '48px',
       color: '#ffffff'
     }).setOrigin(0.5);
 
     // Status text
-    this.statusText = this.add.text(width / 2, height / 2 - 50, 'Connecting to server...', {
+    this.statusText = this.add.text(width / 2, height / 2 - 50, 'Conectando al servidor...', {
       fontSize: '24px',
       color: '#ffff00'
     }).setOrigin(0.5);
@@ -30,7 +30,7 @@ export default class LobbyScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // Cancel button
-    const cancelButton = this.add.text(width / 2, height - 100, 'Cancel', {
+    const cancelButton = this.add.text(width / 2, height - 100, 'Cancelar', {
       fontSize: '24px',
       color: '#ff6666',
       backgroundColor: '#333333',
