@@ -76,54 +76,7 @@ export class SettingsScene extends Phaser.Scene {
       }
     ).setOrigin(0.5, 0);
 
-    
-    // BOTÓN PARA CAMBIAR NICKNAME (si está logueado)
-    const stored = localStorage.getItem('playerUser');
-    if (stored) {
-      try {
-        const player = JSON.parse(stored);
-        this.add.text(cx - 180, cy + 140, `Usuario: ${player.name}`, { fontSize: '18px', color: '#dff4ff' }).setOrigin(0, 0.5);
 
-        const changeBtn = this.createButton(cx + 140, cy + 140, 'Cambiar Nickname', () => {
-          const newName = prompt('Nuevo nickname:', player.name);
-          if (!newName) return;
-
-          // Enviar PUT /api/users/:id
-          (async () => {
-            try {
-              const res = await fetch(`/api/users/${player.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: newName })
-              });
-
-              if (!res.ok) {
-                const err = await res.json().catch(() => ({}));
-                alert(err.error || 'Error al actualizar usuario');
-                return;
-              }
-
-              const updated = await res.json();
-              // Actualizar localStorage
-              localStorage.setItem('playerUser', JSON.stringify(updated));
-
-              // Intentar actualizar MenuScene si está activa
-              const menu = this.scene.get('MenuScene');
-              if (menu && typeof menu.showUser === 'function') {
-                menu.showUser(updated);
-              }
-
-              alert('Nickname actualizado');
-            } catch (err) {
-              console.error('Error actualizando nickname:', err);
-              alert('Error de red al actualizar');
-            }
-          })();
-        });
-      } catch (e) {
-        console.warn('[SettingsScene] Error parsing stored player:', e);
-      }
-    }
 
     // BOTÓN PARA VOLVER (estilo texto solicitado)
     const backLabel = this._returnTo === 'pause' ? 'Volver a Pausa' : 'Volver';

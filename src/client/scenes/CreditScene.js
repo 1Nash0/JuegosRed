@@ -7,7 +7,7 @@ export class CreditScene extends Phaser.Scene {
 
     preload() {
 
-         this.load.image('Creditos', 'assets/FondoCreditos.png'); // fondo(titulo) 
+         this.load.image('Creditos', 'assets/fondoCreditos.png'); // fondo(titulo) 
         // SOLO SONIDOS (opcional)
         this.load.audio('Musica_menu', 'assets/Sonidos para_red/Its Safe Now.mp3');
         this.load.audio('Boton', 'assets/Sonidos para_red/Boton.mp3');  
@@ -42,10 +42,12 @@ Sonidos y Música:
 Testeo: 
 - Cristian Boabes
 - Nasreddin El Khiyat Imusatin
+
+
 Gracias por jugar
         `;
 
-        this.credits = this.add.text(400, 260, creditsText, {
+        this.credits = this.add.text(400, 280, creditsText, {
             fontSize: '24px',
             color: '#ffffff',
             align: 'center',
@@ -56,7 +58,7 @@ Gracias por jugar
         // mueve los créditos unos pocos píxeles arriba/abajo en bucle
         this.tweens.add({
             targets: this.credits,
-            y: this.credits.y - 8,
+            y: this.credits.y - 15,
             duration: 1000,
             ease: 'Sine.easeInOut',
             yoyo: true,
