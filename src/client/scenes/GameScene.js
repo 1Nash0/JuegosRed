@@ -69,6 +69,7 @@ export class GameScene extends Phaser.Scene {
     this.load.audio('Fin_partida', 'assets/Sonidos para_red/Miami.mp3');
     this.load.audio('Sonido_martillo', 'assets/Sonidos para_red/Martillo_juez.mp3');
     this.load.audio('Boton', 'assets/Sonidos para_red/Boton.mp3');
+    this.load.audio('Frio', 'assets/Sonidos para_red/Tembleque.mp3');
   }
 
   create() {
@@ -89,6 +90,7 @@ export class GameScene extends Phaser.Scene {
 this.musicaNivel.play({ loop: true, volume: 0.5 });
 
 
+
     // Cursor: ocultamos por defecto; la entidad Pom puede mostrar su propio sprite
     this.input.mouse.disableContextMenu();
     this.game.canvas.style.cursor = 'none';
@@ -101,6 +103,8 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
   this.input.activePointer.y
 );
 
+
+  
 
     // Scores arriba a la izquierda y derecha
     this.scorePlayer1 = this.add.text(80, 50, 'Pom: 0', {
@@ -288,6 +292,11 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
         this.puntosPlayer1 += 1;
         this.updateScoreUI();
 
+        // Animar el martillo cuando golpea
+        if (this.martillo) {
+          this.martillo.hit();
+        }
+
         // Oculta topo, reproduce sonidos y efecto
         this.topo.hide();
         this.sound.play('Golpe');
@@ -339,13 +348,15 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
     this.currentPowerupType = powerupTypes[Phaser.Math.Between(0, powerupTypes.length - 1)];
 
     let spriteKey;
+    let scale = 0.15; // escala por defecto para reloj
     if (this.currentPowerupType === POWERUP_CLOCK) {
       spriteKey = 'reloj';
     } else if (this.currentPowerupType === POWERUP_THERMOMETER) {
       spriteKey = 'termometro';
+      scale = 0.30; // escala más grande para termómetro
     }
 
-    this.powerup = this.add.image(pos.x, pos.y - 10, spriteKey).setScale(0.15).setDepth(8);
+    this.powerup = this.add.image(pos.x, pos.y - 10, spriteKey).setScale(scale).setDepth(8);
 
     this.powerupHoleIndex = index;
     this.powerup.setInteractive({ useHandCursor: true });
@@ -438,6 +449,24 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
       // Activar efecto del termómetro
       this.thermometerEffectActive = true;
       this.pinBlocked = true;
+      //detener el tiempo
+      this.gameTimer.paused = true;
+
+      //sonido de frio
+      this.sound.play('Frio');
+
+
+
+      // Crear overlay azul claro que cubre toda la pantalla
+      const overlay = this.add.rectangle(
+        this.scale.width / 2,
+        this.scale.height / 2,
+        this.scale.width,
+        this.scale.height,
+        0x87CEEB, // Sky blue / azul claro
+        0.4 // alfa 40% para que se vea de fondo pero transparente
+      ).setDepth(10); // por encima de la mayoría de objetos pero no de UI crítica
+      
       this.thermometerTimer = this.time.addEvent({
         delay: 1000,
         repeat: 3, // 4 ticks: 0,1,2,3
@@ -449,9 +478,14 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
       this.time.delayedCall(4000, () => {
         this.thermometerEffectActive = false;
         this.pinBlocked = false;
+        this.gameTimer.paused = false;
         if (this.thermometerTimer) {
           this.thermometerTimer.destroy();
           this.thermometerTimer = null;
+        }
+        // Eliminar el overlay al terminar
+        if (overlay) {
+          overlay.destroy();
         }
       });
     }
