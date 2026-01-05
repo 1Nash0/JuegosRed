@@ -75,27 +75,24 @@ export class LeaderboardsScene extends Phaser.Scene {
 
     async loadRankings() {
         try {
-            // Fetch users and build a leaderboard by maxScore
-            const response = await fetch('/api/users');
+            // Fetch leaderboard entries (scores históricos con carácter)
+            const response = await fetch('/api/leaderboards');
             if (!response.ok) {
-                throw new Error('Error al cargar usuarios');
+                throw new Error('Error al cargar leaderboards');
             }
-            const users = await response.json();
-            console.log('[LeaderboardsScene] fetched users:', users);
+            const entries = await response.json();
+            console.log('[LeaderboardsScene] fetched entries:', entries);
 
-            // Filtrar usuarios con maxScore > 0 y ordenar por maxScore descendente
-            const rankedUsers = users
-                .filter(u => typeof u.maxScore === 'number' && u.maxScore > 0)
-                .sort((a, b) => b.maxScore - a.maxScore)
-                .slice(0, 10); // Top 10
+            // Mostrar top 10 entries
+            const topEntries = entries.slice(0, 10);
 
             // Limpiar contenedor
             this.rankingsContainer.removeAll();
 
             // Mostrar número de entradas
-            this.countText.setText(`Jugadores: ${rankedUsers.length}`);
+            this.countText.setText(`Puntuaciones: ${topEntries.length}`);
 
-            if (rankedUsers.length === 0) {
+            if (topEntries.length === 0) {
                 this.loadingText.setText('No hay puntuaciones registradas');
                 this.loadingText.setColor('#ffff00');
                 return;
@@ -104,11 +101,12 @@ export class LeaderboardsScene extends Phaser.Scene {
             // Ocultar texto de carga
             this.loadingText.setVisible(false);
 
-            // Mostrar rankings (maxScore por usuario)
-            rankedUsers.forEach((user, index) => {
+            // Mostrar rankings con el carácter
+            topEntries.forEach((entry, index) => {
                 const y = index * 30;
                 const rank = index + 1;
-                const text = this.add.text(0, y, `${rank}. ${user.name} - ${user.maxScore}`, {
+                const character = entry.character ? ` (${entry.character})` : '';
+                const text = this.add.text(0, y, `${rank}. ${entry.name} - ${entry.score}${character}`, {
                     fontSize: '18px',
                     color: '#ffffff',
                     fontFamily: 'Arial'

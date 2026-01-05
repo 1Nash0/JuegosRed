@@ -113,8 +113,8 @@ app.post('/api/leaderboards/seed', (req, res, next) => {
 app.post('/api/users/:id/scores', (req, res, next) => {
   try {
     const { id } = req.params;
-    const { score, opponent } = req.body;
-    const updated = userService.addScore(id, { score: Number(score), opponent: opponent || 'unknown', timestamp: new Date().toISOString() });
+    const { score, opponent, character } = req.body;
+    const updated = userService.addScore(id, { score: Number(score), opponent: opponent || 'unknown', character: character || null, timestamp: new Date().toISOString() });
     if (!updated) return res.status(404).json({ error: 'Usuario no encontrado' });
     res.status(201).json(updated);
   } catch (err) {
