@@ -100,6 +100,8 @@
 - Diseño del topo
 - 
  ![Topo](./public/assets/pin.png)
+-
+![Topo Golpeado](./public/assets/pingolpeado.png)
 
 
  - Escenario base con los agujeros
@@ -109,6 +111,9 @@
  - Iconos de power-ups
  - 
    ![PowerUp de tiempo](./public/assets/reloj.png)
+ -
+   ![PowerUp de termómetro](./public/assets/relojarena.png)
+   
 
 - **Logo:**
     ![Logo](./public/assets/Logo.png)
