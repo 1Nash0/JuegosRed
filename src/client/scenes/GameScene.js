@@ -169,7 +169,7 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
 
     // Evento topo missed: cuando el topo desaparece sin ser golpeado, punto para P2
     this.events.off('topoMissed'); // aseguramos que no haya duplicados
-    this.events.on('topoMissed', (data = {}) => {
+    this.events.on('topoMissed', (_data = {}) => {
       if (this.isGameOver) return;
       if (!this.pinBlocked) {
         this.puntosPlayer2 += 1;
@@ -289,7 +289,7 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
     this.topo.sprite.setInteractive();
     this.topo.sprite.on('pointerdown', (pointer, localX, localY, event) => {
       // Evitar que el evento burbujee al input global
-      try { if (event && event.stopPropagation) event.stopPropagation(); } catch (e) {}
+      try { if (event && event.stopPropagation) event.stopPropagation(); } catch (err) { console.warn('stopPropagation failed', err); }
       if (this.isGameOver) return;
       if (this.topo.isActive && !this.pinBlocked) {
         // Golpe exitoso -> punto para jugador 1 (Pom)
@@ -569,178 +569,167 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
     }
   }
 
-  // ----------------------
-  // End round (pantalla final)
-  // ----------------------
-endRound() {
+ endRound() {
   this.isGameOver = true;
   this.sound.stopAll();
 
-  // Mostrar cursor
-  if (this.game && this.game.canvas && this.game.canvas.style) {
+  if (this.game?.canvas?.style) {
     this.game.canvas.style.cursor = 'auto';
   }
 
-  // Desactivar input general
-  this.input.off('pointerdown');
+  // Desactivar input del juego (NO borrar listeners)
+  this.input.enabled = false;
 
-  // Ocultar martillo
-  if (this.martillo && this.martillo.setVisible) {
-    this.martillo.setVisible(false);
-  }
-
-  // Detener timers
+  if (this.martillo?.setVisible) this.martillo.setVisible(false);
   if (this.topoTimer) this.topoTimer.remove(false);
   if (this.gameTimer) this.gameTimer.remove(false);
 
-  if (this.topo && this.topo.sprite) {
+  if (this.topo?.sprite) {
     this.topo.sprite.disableInteractive();
     this.topo.hide();
   }
 
-  // Coordenadas
   const cx = this.scale.width / 2;
   const cy = this.scale.height / 2;
 
+  // ----------------------
+  // Overlay
+  // ----------------------
+  this.add.rectangle(
+    cx,
+    cy,
+    this.scale.width,
+    this.scale.height,
+    0x000000,
+    0.6
+  ).setDepth(100);
+
+  // ----------------------
   // Panel
-  const panel = this.add.rectangle(cx, cy, 760, 420, 0x0b1220, 0.88)
-    .setOrigin(0.5)
-    .setDepth(200);
-  panel.setStrokeStyle(4, 0x1f6feb);
-  panel.scale = 0.85;
+  // ----------------------
+  const panel = this.add.rectangle(cx, cy, 700, 380, 0x0b1220, 0.95)
+    .setStrokeStyle(4, 0x1f6feb)
+    .setDepth(200)
+    .setScale(0.8);
 
   this.tweens.add({
     targets: panel,
     scale: 1,
-    duration: 220,
+    duration: 300,
     ease: 'Back.Out'
   });
 
-  // IMPORTANTE: el panel NO debe ser interactivo
-  panel.disableInteractive();
+  // ----------------------
+  // Texto ganador
+  // ----------------------
+  let winnerText = 'Empate 🤝';
+  let color = '#ffffff';
 
-  // Winner text
-  let winnerText = 'Empate';
-  if (this.puntosPlayer1 > this.puntosPlayer2) winnerText = '🏆   Gana Jugador 1 (Pom)';
-  else if (this.puntosPlayer2 > this.puntosPlayer1) winnerText = '🏆   Gana Jugador 2 (Pin)';
+  if (this.puntosPlayer1 > this.puntosPlayer2) {
+    winnerText = '🏆 Gana Jugador 1 (Pom)';
+    color = '#6c8bff';
+  } else if (this.puntosPlayer2 > this.puntosPlayer1) {
+    winnerText = '🏆 Gana Jugador 2 (Pin)';
+    color = '#ff6b6b';
+  }
 
-  this.add.text(cx, cy - 130, winnerText, {
-    fontSize: '42px',
+  this.add.text(cx, cy - 120, winnerText, {
+    fontSize: '38px',
     fontStyle: 'bold',
-    color: '#ffffff',
+    color,
     fontFamily: 'Arial'
-  }).setOrigin(0.5).setDepth(250);
+  }).setOrigin(0.5).setDepth(300);
 
-  this.add.rectangle(cx, cy - 90, 420, 3, 0x1f6feb)
-    .setOrigin(0.5)
-    .setDepth(250);
-
-  // Stats
-  this.add.text(cx, cy - 20, `P1 (Pom): ${this.puntosPlayer1}`, {
+  this.add.text(cx, cy - 40, `P1 (Pom): ${this.puntosPlayer1}`, {
     fontSize: '26px',
-    color: '#6c8bff',
-    fontFamily: 'Arial'
-  }).setOrigin(0.5).setDepth(250);
+    color: '#6c8bff'
+  }).setOrigin(0.5).setDepth(300);
 
-  this.add.text(cx, cy + 20, `P2 (Pin): ${this.puntosPlayer2}`, {
+  this.add.text(cx, cy, `P2 (Pin): ${this.puntosPlayer2}`, {
     fontSize: '26px',
-    color: '#ff6b6b',
-    fontFamily: 'Arial'
-  }).setOrigin(0.5).setDepth(250);
+    color: '#ff6b6b'
+  }).setOrigin(0.5).setDepth(300);
 
-  // Update user maxScore if logged in
   this.updateUserScore();
 
-  const btnW = 240;
-  const btnH = 62;
+  // Reactivar input SOLO para UI
+  this.input.enabled = true;
 
-  const createBtn = (x, y, text, baseColor, hoverColor, callback) => {
-    // fondo visible
-    const bg = this.add.rectangle(0, 0, btnW, btnH, baseColor)
+  // ----------------------
+  // BOTONES (DESDE CERO)
+  // ----------------------
+  const btnW = 220;
+  const btnH = 60;
+
+  const createButton = (x, y, text, baseColor, hoverColor, onClick) => {
+
+    // BOTÓN = RECTANGLE INTERACTIVO
+    const btn = this.add.rectangle(x, y, btnW, btnH, baseColor)
       .setOrigin(0.5)
-      .setStrokeStyle(2, 0x0a2740)
-      .setDepth(305);
+      .setDepth(400)
+      .setInteractive({ useHandCursor: true });
 
-    const label = this.add.text(0, 0, text, {
+    btn.setStrokeStyle(2, 0x0a2740);
+
+    const label = this.add.text(x, y, text, {
       fontSize: '22px',
       fontStyle: 'bold',
       color: '#00131d',
       fontFamily: 'Arial'
-    }).setOrigin(0.5).setDepth(306);
+    }).setOrigin(0.5).setDepth(401);
 
-    // Zona interactiva transparente EXACTAMENTE del mismo tamaño que el bg
-    const hit = this.add.rectangle(0, 0, btnW, btnH, 0x000000, 0)
-      .setOrigin(0.5)
-      .setDepth(307)
-      .setInteractive(new Phaser.Geom.Rectangle(-btnW/2, -btnH/2, btnW, btnH), Phaser.Geom.Rectangle.Contains);
+    // Hover
+    btn.on('pointerover', () => {
+      btn.setFillStyle(hoverColor);
+      label.setColor('#ffffff');
+    });
 
-    const container = this.add.container(x, y, [bg, label, hit]);
-    container.setSize(btnW, btnH);
-    container.setInteractive();
-    container.setDepth(300);
+    btn.on('pointerout', () => {
+      btn.setFillStyle(baseColor);
+      label.setColor('#00131d');
+    });
 
-    // Hover usando el hitbox (coincide siempre con la apariencia)
-    hit.on('pointerover', () => {
-        bg.setFillStyle(hoverColor);
-        label.setColor('#ffffff');
+    // Click
+    btn.on('pointerdown', () => {
+      if (this.sound.get('Boton')) {
+        this.sound.play('Boton', { volume: 0.5 });
+      }
 
-        this.tweens.killTweensOf(bg);
-        this.tweens.add({
-          targets: bg,
-          scaleX: 1.06,
-          scaleY: 1.06,
-          duration: 120,
-          ease: 'Power2'
-        });
-
-        this.game.canvas.style.cursor = 'pointer';
+      this.tweens.add({
+        targets: btn,
+        scale: 0.95,
+        yoyo: true,
+        duration: 80,
+        onComplete: onClick
       });
-
-      hit.on('pointerout', () => {
-        bg.setFillStyle(baseColor);
-        label.setColor('#00131d');
-
-        this.tweens.killTweensOf(bg);
-        this.tweens.add({
-          targets: bg,
-          scaleX: 1,
-          scaleY: 1,
-          duration: 120,
-          ease: 'Power2'
-        });
-
-        this.game.canvas.style.cursor = 'auto';
-      });
-
-      hit.on('pointerdown', () => {
-        if (this.sound.get('Boton')) this.sound.play('Boton', { volume: 0.5 });
-        callback();
-      });
-
-      return container;
+    });
   };
 
   const btnY = cy + 120;
 
-  createBtn(
-    cx - 150, 
+  createButton(
+    cx - 130,
     btnY,
-    "Repetir",
-    0x88e1ff,    // base
-    0x4fb0ff,    // hover
-    () => this.scene.restart(),
-    
+    'Repetir',
+    0x88e1ff,
+    0x4fb0ff,
+    () => this.scene.restart()
   );
 
-  createBtn(
-    cx + 150,
+  createButton(
+    cx + 130,
     btnY,
-    "Menú Principal",
-    0xffdba8,   // base
-    0xffb57a,   // hover
+    'Menú Principal',
+    0xffdba8,
+    0xffb57a,
     () => this.scene.start('MenuScene')
   );
+
+  // Teclado
+  this.input.keyboard.once('keydown-ENTER', () => this.scene.restart());
+  this.input.keyboard.once('keydown-ESC', () => this.scene.start('MenuScene'));
 }
+
 
 
   // ----------------------
@@ -768,7 +757,7 @@ endRound() {
       if (score > user.maxScore) {
         updateData.maxScore = score;
       }
-      const response = await fetch(`/api/users/${user.id}`, {
+      await fetch(`/api/users/${user.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updateData)

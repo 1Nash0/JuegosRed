@@ -3,6 +3,10 @@
  */
 import { debug } from '../utils/logger.js';
 
+/**
+ *
+ * @param userService
+ */
 export function createGameRoomService(userService = null) {
   const rooms = new Map(); // roomId -> room data
   let nextRoomId = 1;

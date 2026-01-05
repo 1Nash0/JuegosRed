@@ -149,8 +149,8 @@ export class ConnectionLostScene extends Phaser.Scene {
                 });
             }
             this.sound.resumeAll();
-        } catch (e) {
-            // No hacemos nada crítico si falla
+        } catch (err) {
+            console.warn('[ConnectionLostScene] shutdown failed', err);
         }
     }
-}
+} 

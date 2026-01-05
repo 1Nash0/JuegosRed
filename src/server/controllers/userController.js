@@ -6,9 +6,16 @@
  * Patrón: Inyección de dependencias - recibe el servicio como parámetro
  */
 
+/**
+ *
+ * @param userService
+ */
 export function createUserController(userService) {
   /**
    * POST /api/users - Crear nuevo usuario
+   * @param req
+   * @param res
+   * @param next
    */
   async function create(req, res, next) {
     try {
@@ -38,6 +45,9 @@ export function createUserController(userService) {
 
   /**
    * POST /api/users/login - Login (crear usuario si no existe)
+   * @param req
+   * @param res
+   * @param next
    */
   async function login(req, res, next) {
     try {
@@ -64,6 +74,9 @@ export function createUserController(userService) {
 
   /**
    * GET /api/users - Obtener todos los usuarios
+   * @param req
+   * @param res
+   * @param next
    */
   async function getAll(req, res, next) {
     try {
@@ -76,6 +89,9 @@ export function createUserController(userService) {
 
   /**
    * GET /api/leaderboards - Obtener las entradas del leaderboard
+   * @param req
+   * @param res
+   * @param next
    */
   async function getLeaderboards(req, res, next) {
     try {
@@ -92,6 +108,9 @@ export function createUserController(userService) {
 
   /**
    * GET /api/users/:id - Obtener un usuario por ID
+   * @param req
+   * @param res
+   * @param next
    */
   async function getById(req, res, next) {
     try {
@@ -117,6 +136,9 @@ export function createUserController(userService) {
 
   /**
    * PUT /api/users/:id - Actualizar un usuario
+   * @param req
+   * @param res
+   * @param next
    */
   async function update(req, res, next) {
     try {
@@ -142,6 +164,9 @@ export function createUserController(userService) {
 
   /**
    * DELETE /api/users/:id - Eliminar un usuario
+   * @param req
+   * @param res
+   * @param next
    */
   async function remove(req, res, next) {
     try {

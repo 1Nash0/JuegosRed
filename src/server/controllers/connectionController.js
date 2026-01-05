@@ -1,11 +1,14 @@
 /**
  * Controller para gestionar las conexiones de usuarios
+ * @param connectionService
  */
 export function createConnectionController(connectionService) {
   return {
     /**
      * Handler para el endpoint /connected
      * Registra la conexión de la sesión y devuelve el número de sesiones conectadas
+     * @param req
+     * @param res
      */
     handleConnected(req, res) {
       const { sessionId } = req.body;

@@ -7,10 +7,10 @@ import { createGameRoomService } from '../src/server/services/gameRoomService.js
   const gameRoomService = createGameRoomService(userService);
 
   // Create fake ws with no player info
-  const ws1 = { send: (m) => {}, /* no player */ };
-  const ws2 = { send: (m) => {}, /* no player */ };
+  const ws1 = { send: (_m) => {}, /* no player */ };
+  const ws2 = { send: (_m) => {}, /* no player */ };
 
-  const roomId = gameRoomService.createRoom(ws1, ws2);
+  const _roomId = gameRoomService.createRoom(ws1, ws2);
 
   // Simulate two goals for player1
   gameRoomService.handleGoal(ws2, 'right');

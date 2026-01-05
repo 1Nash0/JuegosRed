@@ -2,6 +2,7 @@ import express from 'express';
 
 /**
  * Rutas para gestionar conexiones de usuarios
+ * @param connectionController
  */
 export function createConnectionRoutes(connectionController) {
   const router = express.Router();

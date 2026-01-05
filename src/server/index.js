@@ -132,7 +132,7 @@ app.get('/health', (req, res) => {
 
 // SPA Fallback - Servir index.html para todas las rutas que no sean API
 // Esto debe ir DESPUÉS de las rutas de la API y ANTES del error handler
-app.use((req, res, next) => {
+app.use((req, res, _next) => {
   // Si la petición es a /api/*, pasar al siguiente middleware (404 para APIs)
   if (req.path.startsWith('/api/')) {
     return res.status(404).json({ error: 'Endpoint no encontrado' });
@@ -144,7 +144,7 @@ app.use((req, res, next) => {
 
 // ==================== ERROR HANDLER ====================
 
-app.use((err, req, res, next) => {
+app.use((err, req, res, _next) => {
   console.error('Error:', err);
   res.status(err.status || 500).json({
     error: err.message || 'Error interno del servidor'
@@ -164,11 +164,12 @@ wss.on('connection', (ws) => {
       const data = JSON.parse(message);
 
       switch (data.type) {
-        case 'joinQueue':
+        case 'joinQueue': {
           // Attach player info if provided and pass to matchmaking
           const playerInfo = data.player || null;
           matchmakingService.joinQueue(ws, playerInfo);
           break;
+        }
 
         case 'leaveQueue':
           matchmakingService.leaveQueue(ws);

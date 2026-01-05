@@ -7,6 +7,10 @@
 
 import express from 'express';
 
+/**
+ *
+ * @param userController
+ */
 export function createUserRoutes(userController) {
   const router = express.Router();
 

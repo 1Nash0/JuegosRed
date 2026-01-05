@@ -1,3 +1,5 @@
+import Phaser from 'phaser';
+
 // ...existing code...
 export class Pin {
 

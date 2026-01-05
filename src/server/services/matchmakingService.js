@@ -1,5 +1,6 @@
 /**
  * Matchmaking service - manages player queue and matches players
+ * @param gameRoomService
  */
 export function createMatchmakingService(gameRoomService) {
   const queue = [];
@@ -7,6 +8,7 @@ export function createMatchmakingService(gameRoomService) {
   /**
    * Add a player to the matchmaking queue
    * @param {WebSocket} ws - The WebSocket connection
+   * @param playerInfo
    */
   function joinQueue(ws, playerInfo = null) {
     // Check if already in queue

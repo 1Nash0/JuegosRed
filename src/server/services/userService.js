@@ -6,6 +6,9 @@
 
 import { debug } from '../utils/logger.js';
 
+/**
+ *
+ */
 export function createUserService() {
   // Estado privado: almacén de usuarios
   let users = [];
@@ -13,8 +16,8 @@ export function createUserService() {
 
   /**
    * Crea un nuevo usuario
-   * @param {Object} userData - {email, name, avatar, level}
-   * @returns {Object} Usuario creado
+   * @param {object} userData - {email, name, avatar, level}
+   * @returns {object} Usuario creado
    */
   function createUser(userData) {
     // 1. Validar que el email no exista ya
@@ -53,8 +56,8 @@ export function createUserService() {
   /**
    * Añade una entrada de puntuación para un usuario identificado por id o email
    * @param {string} idOrEmail - ID o email del usuario
-   * @param {Object} entry - { score: number, opponent: string, timestamp: string }
-   * @returns {Object|null} Usuario actualizado o null si no existe
+   * @param {object} entry - { score: number, opponent: string, timestamp: string }
+   * @returns {object | null} Usuario actualizado o null si no existe
    */
   function addScore(idOrEmail, entry) {
     const user = users.find(u => u.id === idOrEmail || u.email === idOrEmail);
@@ -73,8 +76,8 @@ export function createUserService() {
     // DEBUG: loguear la adición de la puntuación
     try {
       debug(`[UserService] addScore -> user:${user.id || user.email} score:${scoreEntry.score} opponent:${scoreEntry.opponent}`);
-    } catch (e) {
-      // ignore logging errors
+    } catch (err) {
+      console.debug('[UserService] debug log failed', err);
     }
 
     // Actualizar maxScore si corresponde
@@ -126,7 +129,7 @@ export function createUserService() {
   /**
    * Busca un usuario por ID
    * @param {string} id - ID del usuario
-   * @returns {Object|null} Usuario encontrado o null
+   * @returns {object | null} Usuario encontrado o null
    */
   function getUserById(id) {
     const user = users.find(u => u.id === id);
@@ -136,7 +139,7 @@ export function createUserService() {
   /**
    * Busca un usuario por email
    * @param {string} email - Email del usuario
-   * @returns {Object|null} Usuario encontrado o null
+   * @returns {object | null} Usuario encontrado o null
    */
   function getUserByEmail(email) {
     const user = users.find(u => u.email === email);
@@ -146,8 +149,8 @@ export function createUserService() {
   /**
    * Actualiza un usuario
    * @param {string} id - ID del usuario
-   * @param {Object} updates - Campos a actualizar
-   * @returns {Object|null} Usuario actualizado o null si no existe
+   * @param {object} updates - Campos a actualizar
+   * @returns {object | null} Usuario actualizado o null si no existe
    */
   function updateUser(id, updates) {
     const user = users.find(u => u.id === id);
