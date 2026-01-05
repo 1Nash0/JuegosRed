@@ -13,7 +13,7 @@
 9. [Diagrama de Flujo](#9-diagrama-de-flujo)
 10. [Referencias Externas](#10-referencias-externas)
 
-    
+
 
 ## 1. Información General
 - **Nombre del juego:** MoleHole
@@ -79,39 +79,57 @@
 
 ---
 
-## 6. Arte y Diseño Visual 
-- **Estilo:** Cartoon
-- **Cámara:** Top–down.
+## 6. Arte y Diseño Visual
+- **Estilo:** Cartoon 
+- **Cámara:** Top–down.  
 - **Colores:** Paleta de colores vivos.
 - **Animaciones:**
-- Topo saliendo del agujero
-- Golpe de mazo con efecto de impacto exagerado
-- Power-up recogido
+  - Topo saliendo del agujero
+  - Golpe de mazo con efecto de impacto exagerado
+  - Power-up recogido
 - **Bocetos:**
-- Personajes principales
-![Boceto de personaje](./public/assets/Bocetos/Personajes.png)
--
-![Boceto de personajes a color](./public/assets/Bocetos/Inicio.png) 
+ - Personajes principales
+ - 
+   
+ ![Boceto de personaje](./public/assets/Bocetos/Personajes.png)
+ -
+ ![Boceto de personajes a color](./public/assets/Bocetos/Inicio.png)
+
 - Diseño del mazo
+- 
+  
 ![Mazo](./public/assets/mazo.png)
-- Diseño del topo 
-[Topo](./public/assets/pin.png)
+
+- Diseño del topo
+- 
+  
+![Topo](./public/assets/pin.png)
 -
-![Topo Golpeado](./public/assets/pingolpeado.png) 
-- Escenario base sin los agujeros
-![Escenario base](./public/assets/fondo_game.png)
-- Pantalla de créditos
+![Topo Golpeado](./public/assets/pingolpeado.png)
 
-![PowerUp de tiempo](./public/assets/FondoCreditos.png)
 
-- Iconos de power-ups
+ - Escenario base sin los agujeros
+ - 
+   
+ ![Escenario base](./public/assets/fondo_game.png)
 
-![PowerUp de tiempo](./public/assets/relojarena.png)
--
-![PowerUp de termómetro](./public/assets/termometro.png) 
+ - Pantalla de créditos
+ -
+ 
+ ![PowerUp de tiempo](./public/assets/FondoCreditos.png)
+
+ - Iconos de power-ups
+ - 
+   
+ ![PowerUp de tiempo](./public/assets/relojarena.png)
+ -
+ ![PowerUp de termómetro](./public/assets/termometro.png)
+
 
 - **Logo:**
+-
 ![Logo](./public/assets/Logo.png)
+
 ---
 
 ## 7. Sonido
@@ -119,6 +137,7 @@
 - **Efectos:**
 - Sonido de golpe de mazo cuando el mazo golpea en la mesa y no da que al topo.
 - Sonido de castor cuando el mazo golpea al topo
+- Sonido de temblor cuando el topo usa el PowerUp del termómetro
 
 ---
 
@@ -137,4 +156,3 @@
 ## 10. Referencias externas
 - Dibujos inspirados en "Bojack Horseman"
 - Música del "HotLine Miami"
-
