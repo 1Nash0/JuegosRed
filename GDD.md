@@ -90,8 +90,9 @@
 - **Bocetos:**
  - Personajes principales
  - 
-  ![Boceto de personaje](./public/assets/Bocetos/Personajes.png)
-  ![Boceto de personajes a color](./public/assets/Bocetos/Inicio.png)
+ ![Boceto de personaje](./public/assets/Bocetos/Personajes.png)
+ -
+ ![Boceto de personajes a color](./public/assets/Bocetos/Inicio.png)
 
 - Diseño del mazo
 - 
@@ -99,7 +100,7 @@
 
 - Diseño del topo
 - 
- ![Topo](./public/assets/pin.png)
+![Topo](./public/assets/pin.png)
 -
 ![Topo Golpeado](./public/assets/pingolpeado.png)
 
@@ -107,6 +108,10 @@
  - Escenario base con los agujeros
  - 
  ![Escenario base](./public/assets/fondo_game.png)
+
+ - Pantalla de créditos
+ -
+ ![Escenario créditos](./public/assets/Fondocreditos.png)
   
  - Iconos de power-ups
  - 
@@ -116,7 +121,8 @@
    
 
 - **Logo:**
-    ![Logo](./public/assets/Logo.png)
+-
+![Logo](./public/assets/Logo.png)
 
 ---
 
@@ -125,6 +131,7 @@
 - **Efectos:**
 - Sonido de golpe de mazo cuando el mazo golpea en la mesa y no da que al topo.
 - Sonido de castor cuando el mazo golpea al topo
+- Sonido de temblor cuando el topo usa el PowerUp del termómetro
 
 ---
 
