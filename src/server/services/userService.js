@@ -32,6 +32,7 @@ export function createUserService() {
       color: userData.color || 'blue',
       maxScore: typeof userData.maxScore === 'number' ? userData.maxScore : 0,
       bestTime: userData.bestTime || null,
+      bestCharacter: userData.bestCharacter || 'Pom',
       createdAt: new Date().toISOString()
     };
 
@@ -85,7 +86,7 @@ export function createUserService() {
     if (!user) return null;
 
     // Campos permitidos para actualizar
-    const allowed = ['name', 'avatar', 'level', 'color', 'maxScore', 'bestTime'];
+    const allowed = ['name', 'color', 'maxScore'];
 
     for (const key of allowed) {
       if (updates[key] !== undefined) {

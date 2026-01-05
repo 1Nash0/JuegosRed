@@ -92,6 +92,19 @@ export class MenuScene extends Phaser.Scene {
 
         });
 
+         const leaderboardsBtn = this.add.text(500, 520, 'Leaderboards', {
+            fontSize: '30px',
+            fontStyle: 'bold',
+            fontFamily: 'roboto',
+            color: '#892327',
+        }).setOrigin(0.5)
+        .setInteractive({useHandCursor: true})
+        .on('pointerover', () => leaderboardsBtn.setColor('#00fff7ff'))
+        .on('pointerout', () => leaderboardsBtn.setColor('#892327'))
+        .on('pointerdown', () => {
+            this.scene.start('LeaderboardsScene');
+        });
+
         // --- LOGIN / NICKNAME ---
         // Area to show logged-in user or a login button
         this.playerInfoText = this.add.text(850, 30, '', {
@@ -139,7 +152,7 @@ export class MenuScene extends Phaser.Scene {
                 });
         
                 // Indicador de conexión al servidor
-                this.connectionText = this.add.text(500, 530, 'Servidor: Comprobando...', {
+                this.connectionText = this.add.text(500, 580, 'Servidor: Comprobando...', {
                     fontSize: '18px',
                     color: '#ffff00'
                 }).setOrigin(0.5);

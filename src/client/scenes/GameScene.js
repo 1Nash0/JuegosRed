@@ -2,8 +2,6 @@
 import Phaser from 'phaser';
 import { Pom } from '../entities/Pom';
 import { Pin } from '../entities/Pin';
-import { CommandProcessor } from '../commands/CommandProcessor';
-import { PauseGameCommand } from '../commands/PuaseGameCommand';
 
 const POWERUP_CLOCK = 'clock';
 const POWERUP_THERMOMETER = 'thermometer';
@@ -30,8 +28,6 @@ export class GameScene extends Phaser.Scene {
     this.powerupStoredP2 = [];
     this.powerupsUsedP1 = 0;
     this.powerupsUsedP2 = 0;
-    this.powerupsUSADOSP1 = 0;
-    this.powerupsUSADOSP2 = 0;
 
     this.powerup = null;
     this.powerupHoleIndex = -1;
@@ -47,9 +43,6 @@ export class GameScene extends Phaser.Scene {
     // timers / references
     this.topoTimer = null;
     this.gameTimer = null;
-
-    //Command
-    this.processor = new CommandProcessor();
   }
 
   preload() {
@@ -66,7 +59,6 @@ export class GameScene extends Phaser.Scene {
     this.load.audio('Musica_nivel', 'assets/Sonidos para_red/Hydrogen.mp3');
     this.load.audio('Castor', 'assets/Sonidos para_red/Castor.mp3');
     this.load.audio('Golpe', 'assets/Sonidos para_red/Golpe.mp3');
-    this.load.audio('Fin_partida', 'assets/Sonidos para_red/Miami.mp3');
     this.load.audio('Sonido_martillo', 'assets/Sonidos para_red/Martillo_juez.mp3');
     this.load.audio('Boton', 'assets/Sonidos para_red/Boton.mp3');
     this.load.audio('Frio', 'assets/Sonidos para_red/Tembleque.mp3');
@@ -450,6 +442,8 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
       powerupType = this.powerupStoredP1.pop();
       if(this.powerupMaxStoredP1>0)
         this.powerupMaxStoredP1--;
+      if(this.powerupMaxStoredP1>0)
+        this.powerupMaxStoredP1--;
     } else {
       if (this.powerupStoredP2.length <= 0) return false;
       powerupType = this.powerupStoredP2.pop();
@@ -583,7 +577,6 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
 endRound() {
   this.isGameOver = true;
   this.sound.stopAll();
-  //this.sound.play('Fin_partida', { volume: 0.5 });
 
   // Mostrar cursor
   if (this.game && this.game.canvas && this.game.canvas.style) {
@@ -657,7 +650,8 @@ endRound() {
     fontFamily: 'Arial'
   }).setOrigin(0.5).setDepth(250);
 
- 
+  // Update user maxScore if logged in
+  this.updateUserScore();
 
   const btnW = 240;
   const btnH = 62;
@@ -760,6 +754,30 @@ endRound() {
     }
     // reactivar input pointer
     this.input.on('pointerdown', (pointer) => this.handlePointerDown(pointer));
+  }
+
+  // ----------------------
+  // Update user score
+  // ----------------------
+  async updateUserScore() {
+    try {
+      const raw = localStorage.getItem('playerUser');
+      if (!raw) return;
+      const user = JSON.parse(raw);
+      const score = Math.max(this.puntosPlayer1, this.puntosPlayer2);
+      const character = this.puntosPlayer1 > this.puntosPlayer2 ? 'Pom' : 'Pin';
+      const updateData = { bestCharacter: character };
+      if (score > user.maxScore) {
+        updateData.maxScore = score;
+      }
+      const response = await fetch(`/api/users/${user.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData)
+      });
+    } catch (error) {
+      console.error('Error updating user score:', error);
+    }
   }
 
 }
