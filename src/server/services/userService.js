@@ -95,6 +95,9 @@ export function createUserService() {
   function getLeaderboardEntries() {
     const entries = [];
     for (const u of users) {
+      // Skip seeded users (internal samples)
+      if (u && u._seed) continue;
+
       for (const s of u.scores) {
         entries.push({
           userId: u.id,

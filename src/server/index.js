@@ -99,6 +99,8 @@ app.post('/api/leaderboards/seed', (req, res, next) => {
       if (!u) {
         u = userService.createUser({ email: s.email, name: s.name });
       }
+      // Mark this user as seed so it can be filtered out from leaderboards
+      try { u._seed = true; } catch (err) { /* defensive */ }
       userService.addScore(u.id, { score: s.score, opponent: 'seed', character: s.character || null, timestamp: new Date().toISOString() });
     }
 
@@ -173,14 +175,6 @@ wss.on('connection', (ws) => {
 
         case 'leaveQueue':
           matchmakingService.leaveQueue(ws);
-          break;
-
-        case 'paddleMove':
-          gameRoomService.handlePaddleMove(ws, data.y);
-          break;
-
-        case 'goal':
-          gameRoomService.handleGoal(ws, data.side);
           break;
 
         default:
