@@ -79,40 +79,35 @@
 
 ---
 
-## 6. Arte y Diseño Visual
-- **Estilo:** Cartoon 
-- **Cámara:** Top–down.  
+## 6. Arte y Diseño Visual 
+- **Estilo:** Cartoon
+- **Cámara:** Top–down.
 - **Colores:** Paleta de colores vivos.
 - **Animaciones:**
-  - Topo saliendo del agujero
-  - Golpe de mazo con efecto de impacto exagerado
-  - Power-up recogido
+- Topo saliendo del agujero
+- Golpe de mazo con efecto de impacto exagerado
+- Power-up recogido
 - **Bocetos:**
- - Personajes principales
- - 
-  ![Boceto de personaje](./public/assets/Bocetos/Personajes.png)
-  ![Boceto de personajes a color](./public/assets/Bocetos/Inicio.png)
-
+- Personajes principales
+![Boceto de personaje](./public/assets/Bocetos/Personajes.png)
+-
+![Boceto de personajes a color](./public/assets/Bocetos/Inicio.png) 
 - Diseño del mazo
-- 
 ![Mazo](./public/assets/mazo.png)
-
-- Diseño del topo
-- 
- ![Topo](./public/assets/pin.png)
-
-
- - Escenario base con los agujeros
- - 
- ![Escenario base](./public/assets/fondo_game.png)
-  
- - Iconos de power-ups
- - 
-   ![PowerUp de tiempo](./public/assets/reloj.png)
-
+- Diseño del topo 
+[Topo](./public/assets/pin.png)
+-
+![Topo Golpeado](./public/assets/pingolpeado.png) 
+- Escenario base sin los agujeros
+![Escenario base](./public/assets/fondo_game.png)
+- Pantalla de créditos
+![PowerUp de tiempo](./public/assets/FondoCreditos.png)
+- Iconos de power-ups
+![PowerUp de tiempo](./public/assets/relojarena.png)
+-
+![PowerUp de termómetro](./public/assets/termometro.png) 
 - **Logo:**
-    ![Logo](./public/assets/Logo.png)
-
+![Logo](./public/assets/Logo.png)
 ---
 
 ## 7. Sonido
