@@ -107,7 +107,7 @@
 
  - Escenario base sin los agujeros
    
- ![Escenario base](./public/assets/fondo_game.png)
+ ![Escenario base](./public/assets/FondoGameplay.png)
 
  - Pantalla de créditos
  
