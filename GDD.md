@@ -89,19 +89,16 @@
   - Power-up recogido
 - **Bocetos:**
  - Personajes principales
- - 
    
  ![Boceto de personaje](./public/assets/Bocetos/Personajes.png)
  -
  ![Boceto de personajes a color](./public/assets/Bocetos/Inicio.png)
 
 - Diseño del mazo
-- 
   
 ![Mazo](./public/assets/mazo.png)
 
 - Diseño del topo
-- 
   
 ![Topo](./public/assets/pin.png)
 -
@@ -109,12 +106,10 @@
 
 
  - Escenario base sin los agujeros
- - 
    
  ![Escenario base](./public/assets/fondo_game.png)
 
  - Pantalla de créditos
- -
  
  ![PowerUp de tiempo](./public/assets/FondoCreditos.png)
 
