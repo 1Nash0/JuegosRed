@@ -40,6 +40,20 @@ export class LeaderboardsScene extends Phaser.Scene {
         this.rankingsContainer = this.add.container(500, 200);
 
 
+        // Botón de refrescar
+        const refreshBtn = this.add.text(500, 510, 'Refrescar', {
+            fontSize: '20px',
+            color: '#9ef3ff',
+            fontFamily: 'Arial'
+        }).setOrigin(0.5)
+        .setInteractive({ useHandCursor: true })
+        .on('pointerover', () => refreshBtn.setColor('#ffffff'))
+        .on('pointerout', () => refreshBtn.setColor('#9ef3ff'))
+        .on('pointerdown', () => {
+            this.sound.add('Boton').play();
+            this.loadRankings();
+        });
+
         // Botón de volver
         const backBtn = this.add.text(500, 550, 'Volver al Menú', {
             fontSize: '24px',
@@ -56,23 +70,52 @@ export class LeaderboardsScene extends Phaser.Scene {
 
         // Cargar rankings
         this.loadRankings();
+
+        // Auto-refresh cuando se reanuda la escena (por ejemplo al volver desde otra escena)
+        this.events.on('resume', () => this.loadRankings());
     }
 
     async loadRankings() {
         try {
-            // Fetch users and build a leaderboard by maxScore
-            const response = await fetch('/api/users');
-            if (!response.ok) {
-                throw new Error('Error al cargar usuarios');
-            }
-            const users = await response.json();
-            console.log('[LeaderboardsScene] fetched users:', users);
+            this.loadingText.setText('Cargando rankings...');
+            this.loadingText.setVisible(true);
 
-            // Filtrar usuarios con maxScore > 0 y ordenar por maxScore descendente
-            const rankedUsers = users
-                .filter(u => typeof u.maxScore === 'number' && u.maxScore > 0)
-                .sort((a, b) => b.maxScore - a.maxScore)
-                .slice(0, 10); // Top 10
+            // 1) Intentar obtener entradas detalladas desde /api/leaderboards (más precisa)
+            let response = await fetch('/api/leaderboards');
+            if (!response.ok) {
+                // no fatal: caeremos al fallback
+                console.warn('[LeaderboardsScene] /api/leaderboards returned', response.status);
+            }
+
+            let rankedUsers = [];
+
+            if (response.ok) {
+                const entries = await response.json();
+                // entries son objetos { userId, name, avatar, score, opponent, character, timestamp }
+                if (Array.isArray(entries) && entries.length > 0) {
+                    // Agrupar por userId (o name si no hay id) y quedarnos con max score
+                    const map = new Map();
+                    for (const e of entries) {
+                        const key = e.userId || e.name || e.email || (e.userId || 'unknown');
+                        const existing = map.get(key) || { name: e.name || key, maxScore: 0 };
+                        existing.maxScore = Math.max(existing.maxScore, Number(e.score) || 0);
+                        map.set(key, existing);
+                    }
+                    rankedUsers = Array.from(map.values()).sort((a, b) => b.maxScore - a.maxScore).slice(0, 10);
+                }
+            }
+
+            // 2) Fallback: si no obtuvimos entradas, usar /api/users y ordenar por maxScore
+            if (!rankedUsers || rankedUsers.length === 0) {
+                response = await fetch('/api/users');
+                if (!response.ok) throw new Error('Error al cargar usuarios');
+                const users = await response.json();
+                rankedUsers = users
+                    .filter(u => typeof u.maxScore === 'number' && u.maxScore > 0)
+                    .sort((a, b) => b.maxScore - a.maxScore)
+                    .slice(0, 10)
+                    .map(u => ({ name: u.name, maxScore: u.maxScore }));
+            }
 
             // Limpiar contenedor
             this.rankingsContainer.removeAll();
