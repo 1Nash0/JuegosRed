@@ -111,7 +111,7 @@
 
  - Pantalla de créditos
  -
- ![Escenario créditos](./public/assets/Fondocreditos.png)
+ ![Escenario créditos](./public/assets/fondoCreditos.png)
   
  - Iconos de power-ups
  - 
