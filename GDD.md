@@ -105,13 +105,13 @@
 ![Topo Golpeado](./public/assets/pingolpeado.png)
 
 
- - Escenario base con los agujeros
+ - Escenario base sin los agujeros
  - 
  ![Escenario base](./public/assets/fondo_game.png)
 
  - Pantalla de créditos
  -
- ![Escenario créditos](./public/assets/fondoCreditos.png)
+ ![PowerUp de tiempo](./public/assets/FondoCreditos.png)
   
  - Iconos de power-ups
  - 
