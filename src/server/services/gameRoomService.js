@@ -1,7 +1,9 @@
 /**
  * Game Room service - manages active game rooms and game state
  */
-export function createGameRoomService() {
+import { debug } from '../utils/logger.js';
+
+export function createGameRoomService(userService = null) {
   const rooms = new Map(); // roomId -> room data
   let nextRoomId = 1;
 
@@ -18,11 +20,13 @@ export function createGameRoomService() {
       id: roomId,
       player1: {
         ws: player1Ws,
-        score: 0
+        score: 0,
+        info: player1Ws.player || null
       },
       player2: {
         ws: player2Ws,
-        score: 0
+        score: 0,
+        info: player2Ws.player || null
       },
       active: true,
       ballActive: true // Track if ball is in play (prevents duplicate goals)
@@ -112,6 +116,67 @@ export function createGameRoomService() {
       room.player1.ws.send(JSON.stringify(gameOverMsg));
       room.player2.ws.send(JSON.stringify(gameOverMsg));
 
+      // Persist match results to userService if available
+      try {
+        const p1 = room.player1;
+        const p2 = room.player2;
+        const p1Score = p1.score;
+        const p2Score = p2.score;
+
+        if (userService) {
+          // Save for player 1 (create guest if needed)
+          try {
+            let p1Identifier = null;
+            if (p1.info && (p1.info.id || p1.info.email)) {
+              p1Identifier = p1.info.id || p1.info.email;
+            } else {
+              // Create a guest user so we can persist the score
+              const guestEmail = `guest_${room.id}_p1_${Date.now()}@local`;
+              const guestName = p1.info && p1.info.name ? p1.info.name : 'Guest';
+              const guest = userService.createUser({ email: guestEmail, name: guestName });
+              debug(`[GameRoomService] Created guest user for p1: ${guest.email} (id ${guest.id})`);
+              p1Identifier = guest.id;
+            }
+
+            console.log(`[GameRoomService] Persisting score for ${p1.info && p1.info.name ? p1.info.name : p1Identifier}: ${p1Score}`);
+            userService.addScore(p1Identifier, {
+              score: p1Score,
+              opponent: p2.info ? (p2.info.name || p2.info.email) : 'unknown',
+              character: p1.info ? (p1.info.character || p1.info.bestCharacter || null) : null,
+              timestamp: new Date().toISOString()
+            });
+          } catch (err) {
+            console.error('[GameRoomService] Error persisting p1 score:', err);
+          }
+
+          // Save for player 2 (create guest if needed)
+          try {
+            let p2Identifier = null;
+            if (p2.info && (p2.info.id || p2.info.email)) {
+              p2Identifier = p2.info.id || p2.info.email;
+            } else {
+              const guestEmail = `guest_${room.id}_p2_${Date.now()}@local`;
+              const guestName = p2.info && p2.info.name ? p2.info.name : 'Guest';
+              const guest = userService.createUser({ email: guestEmail, name: guestName });
+              console.log(`[GameRoomService] Created guest user for p2: ${guest.email} (id ${guest.id})`);
+              p2Identifier = guest.id;
+            }
+
+            console.log(`[GameRoomService] Persisting score for ${p2.info && p2.info.name ? p2.info.name : p2Identifier}: ${p2Score}`);
+            userService.addScore(p2Identifier, {
+              score: p2Score,
+              opponent: p1.info ? (p1.info.name || p1.info.email) : 'unknown',
+              character: p2.info ? (p2.info.character || p2.info.bestCharacter || null) : null,
+              timestamp: new Date().toISOString()
+            });
+          } catch (err) {
+            console.error('[GameRoomService] Error persisting p2 score:', err);
+          }
+        }
+      } catch (err) {
+        console.error('Error saving match results:', err);
+      }
+
       // Mark room as inactive
       room.active = false;
     } else {
@@ -160,10 +225,70 @@ export function createGameRoomService() {
     if (room.active) {
       const opponent = room.player1.ws === ws ? room.player2.ws : room.player1.ws;
 
-      if (opponent.readyState === 1) { // WebSocket.OPEN
+      if (opponent && opponent.readyState === 1) { // WebSocket.OPEN
         opponent.send(JSON.stringify({
           type: 'playerDisconnected'
         }));
+      }
+
+      // Persist current scores to userService so partial matches are recorded
+      try {
+        const p1 = room.player1;
+        const p2 = room.player2;
+        const p1Score = p1.score;
+        const p2Score = p2.score;
+
+        if (userService) {
+          // Save for player 1 (create guest if needed)
+          try {
+            let p1Identifier = null;
+            if (p1.info && (p1.info.id || p1.info.email)) {
+              p1Identifier = p1.info.id || p1.info.email;
+            } else {
+              const guestEmail = `guest_${room.id}_p1_${Date.now()}@local`;
+              const guestName = p1.info && p1.info.name ? p1.info.name : 'Guest';
+              const guest = userService.createUser({ email: guestEmail, name: guestName });
+              console.log(`[GameRoomService] Created guest user for p1 (disconnect): ${guest.email} (id ${guest.id})`);
+              p1Identifier = guest.id;
+            }
+
+            console.log(`[GameRoomService] Persisting score on disconnect for ${p1Identifier}: ${p1Score}`);
+            userService.addScore(p1Identifier, {
+              score: p1Score,
+              opponent: p2.info ? (p2.info.name || p2.info.email) : 'unknown',
+              character: p1.info ? (p1.info.character || p1.info.bestCharacter || null) : null,
+              timestamp: new Date().toISOString()
+            });
+          } catch (err) {
+            console.error('[GameRoomService] Error persisting p1 score on disconnect:', err);
+          }
+
+          // Save for player 2 (create guest if needed)
+          try {
+            let p2Identifier = null;
+            if (p2.info && (p2.info.id || p2.info.email)) {
+              p2Identifier = p2.info.id || p2.info.email;
+            } else {
+              const guestEmail = `guest_${room.id}_p2_${Date.now()}@local`;
+              const guestName = p2.info && p2.info.name ? p2.info.name : 'Guest';
+              const guest = userService.createUser({ email: guestEmail, name: guestName });
+              console.log(`[GameRoomService] Created guest user for p2 (disconnect): ${guest.email} (id ${guest.id})`);
+              p2Identifier = guest.id;
+            }
+
+            console.log(`[GameRoomService] Persisting score on disconnect for ${p2Identifier}: ${p2Score}`);
+            userService.addScore(p2Identifier, {
+              score: p2Score,
+              opponent: p1.info ? (p1.info.name || p1.info.email) : 'unknown',
+              character: p2.info ? (p2.info.character || p2.info.bestCharacter || null) : null,
+              timestamp: new Date().toISOString()
+            });
+          } catch (err) {
+            console.error('[GameRoomService] Error persisting p2 score on disconnect:', err);
+          }
+        }
+      } catch (err) {
+        console.error('Error saving match results on disconnect:', err);
       }
     }
 

@@ -15,6 +15,12 @@ export function createMatchmakingService(gameRoomService) {
     }
 
     const entry = { ws, player: playerInfo };
+
+    // Store player info directly on the WebSocket for later access in gameRoomService
+    if (playerInfo) {
+      ws.player = playerInfo;
+    }
+
     queue.push(entry);
 
     // Log join

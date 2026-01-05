@@ -13,7 +13,7 @@ export class GameScene extends Phaser.Scene {
 
   init() {
     // Game state
-    this.timeLeft = 60; // segundos
+    this.timeLeft = 6; // segundos
     this.isGameOver = false;
 
     // Scores
@@ -51,7 +51,7 @@ export class GameScene extends Phaser.Scene {
     this.load.image('Martillo', 'assets/mazo.png');
     this.load.image('bojack', 'assets/pin.png');
     this.load.image('Pingolpeado', 'assets/pingolpeado.png');
-    this.load.image('reloj', 'assets/reloj.png');
+    this.load.image('reloj', 'assets/relojarena.png');
     this.load.image('agujero', 'assets/agujero.png');
     this.load.image('termometro', 'assets/termometro.png');
 
@@ -357,7 +357,7 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
     this.currentPowerupType = powerupTypes[Phaser.Math.Between(0, powerupTypes.length - 1)];
 
     let spriteKey;
-    let scale = 0.15; // escala por defecto para reloj
+    let scale = 0.45; // escala por defecto para reloj
     if (this.currentPowerupType === POWERUP_CLOCK) {
       spriteKey = 'reloj';
     } else if (this.currentPowerupType === POWERUP_THERMOMETER) {
@@ -441,9 +441,7 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
       if (this.powerupStoredP1.length <= 0) return false;
       powerupType = this.powerupStoredP1.pop();
       if(this.powerupMaxStoredP1>0)
-        this.powerupMaxStoredP1--;
-      if(this.powerupMaxStoredP1>0)
-        this.powerupMaxStoredP1--;
+        this.powerupMaxStoredP1--
     } else {
       if (this.powerupStoredP2.length <= 0) return false;
       powerupType = this.powerupStoredP2.pop();

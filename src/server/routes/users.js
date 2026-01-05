@@ -19,6 +19,9 @@ export function createUserRoutes(userController) {
   // GET /api/users - Obtener todos los usuarios
   router.get('/', userController.getAll);
 
+  // GET /api/leaderboards - Obtener entradas del leaderboard (scores históricos)
+  router.get('/leaderboards', userController.getLeaderboards);
+
   // GET /api/users/:id - Obtener un usuario por ID
   router.get('/:id', userController.getById);
 

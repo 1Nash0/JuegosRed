@@ -9,7 +9,7 @@ export class MenuScene extends Phaser.Scene {
     preload() {
 
         // IMÁGENES
-    this.load.image('Titulo', 'assets/Bocetos/Inicio.png'); // fondo(titulo) 
+    this.load.image('Titulo', 'assets/Bocetos/FondoJuego.png'); // fondo(titulo) 
 
         // SONIDOS
   this.load.audio('Musica_menu', 'assets/Sonidos para_red/Its Safe Now.mp3');

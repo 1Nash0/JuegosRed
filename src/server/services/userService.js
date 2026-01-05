@@ -4,6 +4,8 @@
  * y proporciona métodos para realizar operaciones CRUD
  */
 
+import { debug } from '../utils/logger.js';
+
 export function createUserService() {
   // Estado privado: almacén de usuarios
   let users = [];
@@ -33,6 +35,8 @@ export function createUserService() {
       maxScore: typeof userData.maxScore === 'number' ? userData.maxScore : 0,
       bestTime: userData.bestTime || null,
       bestCharacter: userData.bestCharacter || 'Pom',
+      // Keep history of scores for leaderboard
+      scores: [],
       createdAt: new Date().toISOString()
     };
 
@@ -44,6 +48,70 @@ export function createUserService() {
 
     // 5. Retornar el usuario creado
     return newUser;
+  }
+
+  /**
+   * Añade una entrada de puntuación para un usuario identificado por id o email
+   * @param {string} idOrEmail - ID o email del usuario
+   * @param {Object} entry - { score: number, opponent: string, timestamp: string }
+   * @returns {Object|null} Usuario actualizado o null si no existe
+   */
+  function addScore(idOrEmail, entry) {
+    const user = users.find(u => u.id === idOrEmail || u.email === idOrEmail);
+    if (!user) return null;
+
+    // Añadir entrada (copiar para seguridad)
+    const scoreEntry = {
+      score: Number(entry.score) || 0,
+      opponent: entry.opponent || 'unknown',
+      character: entry.character || null,
+      timestamp: entry.timestamp || new Date().toISOString()
+    };
+
+    user.scores.push(scoreEntry);
+
+    // DEBUG: loguear la adición de la puntuación
+    try {
+      debug(`[UserService] addScore -> user:${user.id || user.email} score:${scoreEntry.score} opponent:${scoreEntry.opponent}`);
+    } catch (e) {
+      // ignore logging errors
+    }
+
+    // Actualizar maxScore si corresponde
+    if (scoreEntry.score > (user.maxScore || 0)) {
+      user.maxScore = scoreEntry.score;
+    }
+
+    return { ...user };
+  }
+
+  /**
+   * Obtiene todas las entradas de leaderboard (aplanando los scores de todos los usuarios)
+   * @returns {Array} Array de entradas { userId, name, avatar, score, opponent, timestamp }
+   */
+  function getLeaderboardEntries() {
+    const entries = [];
+    for (const u of users) {
+      for (const s of u.scores) {
+        entries.push({
+          userId: u.id,
+          name: u.name,
+          avatar: u.avatar,
+          score: s.score,
+          opponent: s.opponent,
+          character: s.character || null,
+          timestamp: s.timestamp
+        });
+      }
+    }
+
+    // Ordenar por score descendente y luego por fecha descendente
+    entries.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return new Date(b.timestamp) - new Date(a.timestamp);
+    });
+
+    return entries;
   }
 
   /**
@@ -117,6 +185,9 @@ export function createUserService() {
     getUserById,
     getUserByEmail,
     updateUser,
-    deleteUser
+    deleteUser,
+    // Nuevo API
+    addScore,
+    getLeaderboardEntries
   };
 }

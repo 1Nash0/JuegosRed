@@ -75,6 +75,22 @@ export function createUserController(userService) {
   }
 
   /**
+   * GET /api/leaderboards - Obtener las entradas del leaderboard
+   */
+  async function getLeaderboards(req, res, next) {
+    try {
+      const entries = userService.getLeaderboardEntries();
+      // DEBUG: log number of entries returned
+      console.log(`[UserController] getLeaderboards returning ${entries.length} entries`);
+      // Opcional: permitir limitar la respuesta con ?limit=
+      const limit = Number(req.query.limit) || 50;
+      res.status(200).json(entries.slice(0, limit));
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * GET /api/users/:id - Obtener un usuario por ID
    */
   async function getById(req, res, next) {
@@ -148,6 +164,7 @@ export function createUserController(userService) {
     create,
     login,
     getAll,
+    getLeaderboards,
     getById,
     update,
     remove

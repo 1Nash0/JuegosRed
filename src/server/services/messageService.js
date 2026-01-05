@@ -13,50 +13,51 @@
  */
 
 export function createMessageService(userService) {
-  // TODO: Declarar variables privadas
-  // - Array de mensajes
-  // - Contador para IDs
+  // Estado privado
+  const messages = [];
+  let nextId = 1;
 
   /**
    * Crea un nuevo mensaje
-   * @param {string} email - Email del usuario que envía
-   * @param {string} message - Contenido del mensaje
-   * @returns {Object} Mensaje creado
-   * @throws {Error} Si el email no existe
    */
   function createMessage(email, message) {
-    // TODO: Implementar
-    // 1. Verificar que el usuario existe (userService.getUserByEmail)
-    // 2. Si no existe, lanzar error
-    // 3. Crear objeto mensaje con id, email, message, timestamp
-    // 4. Agregar a la lista
-    // 5. Retornar el mensaje creado
-    throw new Error('createMessage() no implementado - TODO para estudiantes');
+    const user = userService.getUserByEmail(email);
+    if (!user) {
+      throw new Error('Email no registrado');
+    }
+
+    const msg = {
+      id: String(nextId++),
+      email,
+      message,
+      timestamp: new Date().toISOString()
+    };
+
+    messages.push(msg);
+    return { ...msg };
   }
 
   /**
-   * Obtiene los últimos N mensajes
-   * @param {number} limit - Cantidad de mensajes a retornar
-   * @returns {Array} Array de mensajes
+   * Obtiene los últimos N mensajes (más recientes primero)
    */
   function getRecentMessages(limit = 50) {
-    // TODO: Implementar
-    // Retornar los últimos 'limit' mensajes, ordenados por timestamp
-    throw new Error('getRecentMessages() no implementado - TODO para estudiantes');
+    return [...messages]
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+      .slice(0, limit);
   }
 
   /**
    * Obtiene mensajes desde un timestamp específico
-   * @param {string} since - Timestamp ISO
-   * @returns {Array} Mensajes nuevos desde ese timestamp
    */
   function getMessagesSince(since) {
-    // TODO: Implementar
-    // Filtrar mensajes cuyo timestamp sea mayor que 'since'
-    throw new Error('getMessagesSince() no implementado - TODO para estudiantes');
+    const sinceDate = new Date(since);
+    if (isNaN(sinceDate.getTime())) return [];
+
+    return messages
+      .filter(m => new Date(m.timestamp) > sinceDate)
+      .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
   }
 
-  // Exponer la API pública del servicio
   return {
     createMessage,
     getRecentMessages,

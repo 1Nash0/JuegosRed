@@ -19,35 +19,41 @@ export function createMessageController(messageService) {
    */
   async function create(req, res, next) {
     try {
-      // TODO: Implementar
-      // 1. Extraer email y message del body
-      // 2. Validar que ambos campos estén presentes
-      // 3. Llamar a messageService.createMessage()
-      // 4. Retornar 201 con el mensaje creado
-      // 5. Si el email no existe, retornar 400 con error descriptivo
-      throw new Error('create() no implementado - TODO para estudiantes');
+      const { email, message } = req.body || {};
+      if (!email || !message) {
+        return res.status(400).json({ error: 'email y message son requeridos' });
+      }
+
+      try {
+        const created = messageService.createMessage(email, message);
+        return res.status(201).json(created);
+      } catch (err) {
+        if (err.message === 'Email no registrado') {
+          return res.status(400).json({ error: err.message });
+        }
+        throw err;
+      }
     } catch (error) {
       next(error);
     }
   }
 
-  /**
-   * GET /api/messages - Obtener mensajes
-   * Query params: ?limit=N o ?since=timestamp
-   */
   async function getMessages(req, res, next) {
     try {
-      // TODO: Implementar
-      // 1. Revisar si hay query param 'since'
-      //    - Si existe, llamar a messageService.getMessagesSince()
-      // 2. Si no hay 'since', revisar query param 'limit'
-      //    - Llamar a messageService.getRecentMessages(limit)
-      // 3. Retornar 200 con los mensajes
-      throw new Error('getMessages() no implementado - TODO para estudiantes');
+      const { since, limit } = req.query;
+      if (since) {
+        const msgs = messageService.getMessagesSince(since);
+        return res.status(200).json(msgs);
+      }
+
+      const l = Number(limit) || 50;
+      const msgs = messageService.getRecentMessages(l);
+      return res.status(200).json(msgs);
     } catch (error) {
       next(error);
     }
   }
+
 
   // Exponer la API pública del controlador
   return {

@@ -33,7 +33,7 @@ const __dirname = path.dirname(__filename);
 const userService = createUserService();
 const messageService = createMessageService(userService);  // messageService depende de userService
 const connectionService = createConnectionService();
-const gameRoomService = createGameRoomService();
+const gameRoomService = createGameRoomService(userService);
 const matchmakingService = createMatchmakingService(gameRoomService);
 
 // 2. Crear controladores inyectando servicios (capa de lógica)
@@ -82,6 +82,46 @@ app.use(express.static(path.join(__dirname, '../../dist')));
 // ==================== RUTAS ====================
 
 app.use('/api/users', userRoutes);
+// Alias para compatibilidad: /api/leaderboards -> /api/users/leaderboards
+app.get('/api/leaderboards', userController.getLeaderboards);
+
+// POST /api/leaderboards/seed - helper para crear entradas de ejemplo (solo dev)
+app.post('/api/leaderboards/seed', (req, res, next) => {
+  try {
+    const sample = [
+      { email: 'alice@example.com', name: 'Alice', score: 10, character: 'Pom' },
+      { email: 'bob@example.com', name: 'Bob', score: 7, character: 'Pin' },
+      { email: 'carol@example.com', name: 'Carol', score: 5, character: 'Pom' }
+    ];
+
+    for (const s of sample) {
+      let u = userService.getUserByEmail(s.email);
+      if (!u) {
+        u = userService.createUser({ email: s.email, name: s.name });
+      }
+      userService.addScore(u.id, { score: s.score, opponent: 'seed', character: s.character || null, timestamp: new Date().toISOString() });
+    }
+
+    const entries = userService.getLeaderboardEntries();
+    res.status(201).json(entries);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/users/:id/scores - agregar una entrada de puntuación a un usuario
+app.post('/api/users/:id/scores', (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { score, opponent } = req.body;
+    const updated = userService.addScore(id, { score: Number(score), opponent: opponent || 'unknown', timestamp: new Date().toISOString() });
+    if (!updated) return res.status(404).json({ error: 'Usuario no encontrado' });
+    res.status(201).json(updated);
+  } catch (err) {
+    next(err);
+  }
+});
+
 app.use('/api/messages', messageRoutes);
 app.use('/api/connected', connectionRoutes);
 

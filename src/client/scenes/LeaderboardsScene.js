@@ -29,8 +29,31 @@ export class LeaderboardsScene extends Phaser.Scene {
             fontFamily: 'Arial'
         }).setOrigin(0.5);
 
+        // Contador/debug de entradas
+        this.countText = this.add.text(500, 120, '', {
+            fontSize: '18px',
+            color: '#00ffff',
+            fontFamily: 'Arial'
+        }).setOrigin(0.5);
+
         // Contenedor para la lista
         this.rankingsContainer = this.add.container(500, 200);
+
+        // Botón de refrescar
+        const refreshBtn = this.add.text(850, 50, 'Refrescar', {
+            fontSize: '18px',
+            color: '#00ffff',
+            fontFamily: 'Arial'
+        }).setOrigin(0.5)
+        .setInteractive({ useHandCursor: true })
+        .on('pointerover', () => refreshBtn.setColor('#ffffff'))
+        .on('pointerout', () => refreshBtn.setColor('#00ffff'))
+        .on('pointerdown', () => {
+            this.sound.add('Boton').play();
+            this.loadingText.setText('Cargando rankings...');
+            this.loadingText.setColor('#ffff00');
+            this.loadRankings();
+        });
 
         // Botón de volver
         const backBtn = this.add.text(500, 550, 'Volver al Menú', {
@@ -52,35 +75,41 @@ export class LeaderboardsScene extends Phaser.Scene {
 
     async loadRankings() {
         try {
+            // Fetch users and build a leaderboard by maxScore
             const response = await fetch('/api/users');
             if (!response.ok) {
                 throw new Error('Error al cargar usuarios');
             }
             const users = await response.json();
+            console.log('[LeaderboardsScene] fetched users:', users);
 
             // Filtrar usuarios con maxScore > 0 y ordenar por maxScore descendente
             const rankedUsers = users
-                .filter(user => user.maxScore > 0)
+                .filter(u => typeof u.maxScore === 'number' && u.maxScore > 0)
                 .sort((a, b) => b.maxScore - a.maxScore)
                 .slice(0, 10); // Top 10
 
             // Limpiar contenedor
             this.rankingsContainer.removeAll();
 
+            // Mostrar número de entradas
+            this.countText.setText(`Jugadores: ${rankedUsers.length}`);
+
             if (rankedUsers.length === 0) {
                 this.loadingText.setText('No hay puntuaciones registradas');
+                this.loadingText.setColor('#ffff00');
                 return;
             }
 
             // Ocultar texto de carga
             this.loadingText.setVisible(false);
 
-            // Mostrar rankings
+            // Mostrar rankings (maxScore por usuario)
             rankedUsers.forEach((user, index) => {
                 const y = index * 30;
                 const rank = index + 1;
-                const text = this.add.text(0, y, `${rank}. ${user.name} ${user.maxScore}`, {
-                    fontSize: '20px',
+                const text = this.add.text(0, y, `${rank}. ${user.name} - ${user.maxScore}`, {
+                    fontSize: '18px',
                     color: '#ffffff',
                     fontFamily: 'Arial'
                 }).setOrigin(0.5, 0);
@@ -88,7 +117,7 @@ export class LeaderboardsScene extends Phaser.Scene {
             });
 
         } catch (error) {
-            console.error('Error loading rankings:', error);
+            console.error('Error loading leaderboards:', error);
             this.loadingText.setText('Error al cargar rankings');
             this.loadingText.setColor('#ff0000');
         }
