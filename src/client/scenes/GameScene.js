@@ -13,7 +13,7 @@ export class GameScene extends Phaser.Scene {
 
   init() {
     // Game state
-    this.timeLeft = 60; // segundos
+    this.timeLeft = 6; // segundos
     this.isGameOver = false;
 
     // Scores

@@ -39,21 +39,6 @@ export class LeaderboardsScene extends Phaser.Scene {
         // Contenedor para la lista
         this.rankingsContainer = this.add.container(500, 200);
 
-
-        // Botón de refrescar
-        const refreshBtn = this.add.text(500, 510, 'Refrescar', {
-            fontSize: '20px',
-            color: '#9ef3ff',
-            fontFamily: 'Arial'
-        }).setOrigin(0.5)
-        .setInteractive({ useHandCursor: true })
-        .on('pointerover', () => refreshBtn.setColor('#ffffff'))
-        .on('pointerout', () => refreshBtn.setColor('#9ef3ff'))
-        .on('pointerdown', () => {
-            this.sound.add('Boton').play();
-            this.loadRankings();
-        });
-
         // Botón de volver
         const backBtn = this.add.text(500, 550, 'Volver al Menú', {
             fontSize: '24px',
