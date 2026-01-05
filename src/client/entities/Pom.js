@@ -1,3 +1,5 @@
+import Phaser from 'phaser';
+
 export class Pom extends Phaser.GameObjects.Image {
 
     constructor(scene, id, x, y) {

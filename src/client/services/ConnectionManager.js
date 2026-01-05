@@ -96,7 +96,7 @@ export class ConnectionManager {
 
   /**
    * Notificar a todos los listeners
-   * @param {Object} data - Datos del estado de conexión
+   * @param {object} data - Datos del estado de conexión
    */
   notifyListeners(data) {
     this.listeners.forEach(listener => listener(data));
@@ -104,7 +104,7 @@ export class ConnectionManager {
 
   /**
    * Obtener el estado actual de conexión
-   * @returns {Object}
+   * @returns {object}
    */
   getStatus() {
     return {

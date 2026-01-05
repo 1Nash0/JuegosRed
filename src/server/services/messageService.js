@@ -12,6 +12,10 @@
  *   antes de crear un mensaje
  */
 
+/**
+ *
+ * @param userService
+ */
 export function createMessageService(userService) {
   // Estado privado
   const messages = [];
@@ -19,6 +23,8 @@ export function createMessageService(userService) {
 
   /**
    * Crea un nuevo mensaje
+   * @param email
+   * @param message
    */
   function createMessage(email, message) {
     const user = userService.getUserByEmail(email);
@@ -39,6 +45,7 @@ export function createMessageService(userService) {
 
   /**
    * Obtiene los últimos N mensajes (más recientes primero)
+   * @param limit
    */
   function getRecentMessages(limit = 50) {
     return [...messages]
@@ -48,6 +55,7 @@ export function createMessageService(userService) {
 
   /**
    * Obtiene mensajes desde un timestamp específico
+   * @param since
    */
   function getMessagesSince(since) {
     const sinceDate = new Date(since);

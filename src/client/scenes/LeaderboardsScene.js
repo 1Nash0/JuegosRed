@@ -39,31 +39,16 @@ export class LeaderboardsScene extends Phaser.Scene {
         // Contenedor para la lista
         this.rankingsContainer = this.add.container(500, 200);
 
-        // Botón de refrescar
-        const refreshBtn = this.add.text(850, 50, 'Refrescar', {
-            fontSize: '18px',
-            color: '#00ffff',
-            fontFamily: 'Arial'
-        }).setOrigin(0.5)
-        .setInteractive({ useHandCursor: true })
-        .on('pointerover', () => refreshBtn.setColor('#ffffff'))
-        .on('pointerout', () => refreshBtn.setColor('#00ffff'))
-        .on('pointerdown', () => {
-            this.sound.add('Boton').play();
-            this.loadingText.setText('Cargando rankings...');
-            this.loadingText.setColor('#ffff00');
-            this.loadRankings();
-        });
 
         // Botón de volver
         const backBtn = this.add.text(500, 550, 'Volver al Menú', {
             fontSize: '24px',
-            color: '#00ff00',
+            color: '#e18fa1ff',
             fontFamily: 'Arial'
         }).setOrigin(0.5)
         .setInteractive({ useHandCursor: true })
         .on('pointerover', () => backBtn.setColor('#ffffff'))
-        .on('pointerout', () => backBtn.setColor('#00ff00'))
+        .on('pointerout', () => backBtn.setColor('#e18fa1ff'))
         .on('pointerdown', () => {
             this.sound.add('Boton').play();
             this.scene.start('MenuScene');

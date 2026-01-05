@@ -176,7 +176,7 @@ export class MenuScene extends Phaser.Scene {
                 try {
                     if (data.connected) {
                         this.connectionText.setText(`Servidor: ${data.count} usuario(s) conectado(s)`);
-                        this.connectionText.setColor('#00ff00');
+                        this.connectionText.setColor('#0d3533ff');
                     } else {
                         this.connectionText.setText('Servidor: Desconectado');
                         this.connectionText.setColor('#ff0000');
@@ -195,8 +195,8 @@ export class MenuScene extends Phaser.Scene {
                     if (!raw) return;
                     const user = JSON.parse(raw);
                     this.showUser(user);
-                } catch (e) {
-                    console.warn('[MenuScene] Error loading stored user:', e);
+                } catch (err) {
+                    console.warn('[MenuScene] Error loading stored user:', err);
                 }
             }
 
@@ -225,8 +225,8 @@ export class MenuScene extends Phaser.Scene {
                 // Disable scene input so clicks don't pass through to the game
                 try {
                     this.input.enabled = false;
-                } catch (e) {
-                    // ignore if input manager not present
+                } catch (err) {
+                    console.warn('[MenuScene] failed to disable input', err);
                 }
 
                 // Create DOM modal overlay so user can type properly
@@ -346,14 +346,14 @@ export class MenuScene extends Phaser.Scene {
                 this._loginModalOpen = false;
 
                 // Re-enable scene input
-                try { this.input.enabled = true; } catch (e) {}
+                try { this.input.enabled = true; } catch (err) { console.warn('MenuScene: failed to re-enable input', err); }
 
                 // Remove DOM modal and listeners
-                try { if (this._domEnterBtn && this._domSubmitHandler) this._domEnterBtn.removeEventListener('click', this._domSubmitHandler); } catch (e) {}
-                try { if (this._domCancelBtn && this._domCancelHandler) this._domCancelBtn.removeEventListener('click', this._domCancelHandler); } catch (e) {}
-                try { if (this._domKeyHandler) document.removeEventListener('keydown', this._domKeyHandler); } catch (e) {}
-                try { if (this._domModal && this._domStopPointer) { this._domModal.removeEventListener('pointerdown', this._domStopPointer, true); this._domModal.removeEventListener('mousedown', this._domStopPointer, true); } } catch (e) {}
-                try { if (this._domModal && this._domBackgroundClickHandler) { this._domModal.removeEventListener('click', this._domBackgroundClickHandler, true); } } catch (e) {}
+                try { if (this._domEnterBtn && this._domSubmitHandler) this._domEnterBtn.removeEventListener('click', this._domSubmitHandler); } catch (err) { console.warn('MenuScene: failed to remove enter button listener', err); }
+                try { if (this._domCancelBtn && this._domCancelHandler) this._domCancelBtn.removeEventListener('click', this._domCancelHandler); } catch (err) { console.warn('MenuScene: failed to remove cancel button listener', err); }
+                try { if (this._domKeyHandler) document.removeEventListener('keydown', this._domKeyHandler); } catch (err) { console.warn('MenuScene: failed to remove keydown listener', err); }
+                try { if (this._domModal && this._domStopPointer) { this._domModal.removeEventListener('pointerdown', this._domStopPointer, true); this._domModal.removeEventListener('mousedown', this._domStopPointer, true); } } catch (err) { console.warn('MenuScene: failed to remove pointer/mousedown listeners', err); }
+                try { if (this._domModal && this._domBackgroundClickHandler) { this._domModal.removeEventListener('click', this._domBackgroundClickHandler, true); } } catch (err) { console.warn('MenuScene: failed to remove background click handler', err); }
 
                 if (this._domModal && this._domModal.parentNode) {
                     this._domModal.parentNode.removeChild(this._domModal);

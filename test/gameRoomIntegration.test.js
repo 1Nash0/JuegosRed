@@ -11,9 +11,13 @@ import { createGameRoomService } from '../src/server/services/gameRoomService.js
   const u2 = userService.createUser({ email: 'p2@example.com', name: 'Player2' });
 
   // Crear websockets falsos (solo con send y roomId)
+  /**
+   *
+   * @param user
+   */
   function makeFakeWs(user) {
     return {
-      send: (msg) => { /* no-op */ },
+      send: (_msg) => { /* no-op */ },
       player: user
     };
   }
@@ -22,7 +26,7 @@ import { createGameRoomService } from '../src/server/services/gameRoomService.js
   const ws2 = makeFakeWs(u2);
 
   // Crear sala
-  const roomId = gameRoomService.createRoom(ws1, ws2);
+  const _roomId = gameRoomService.createRoom(ws1, ws2);
 
   // Simular dos goles para player1 para forzar gameOver
   // Use 'right' so player1 scores. Wait 1100ms between goals to allow relaunch.

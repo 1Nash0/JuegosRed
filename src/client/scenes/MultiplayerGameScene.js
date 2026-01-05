@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
-import { Pom } from '../entities/Pom';
-import { Pin } from '../entities/Pin';
+
 
 /**
  * Multiplayer Game Scene - Online pong game

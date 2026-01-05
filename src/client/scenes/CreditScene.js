@@ -23,39 +23,44 @@ export class CreditScene extends Phaser.Scene {
         this.sound.add('Musica_menu').play({ loop: true, volume: 0.5 });
 
         // TÍTULO
-        this.add.text(400, 50, 'Créditos', {
+        this.add.text(200, 70, 'Créditos:', {
             fontSize: '48px',
             color: '#ffffff'
         }).setOrigin(0.5);
 
         // TEXTO DE CRÉDITOS
         const creditsText = `
-Desarrolladores:
-- Cristian Boabes
-- Nasreddin El Khiyat Imusatin
-- Jaime Alonso del Real
-- David Martínez García
-Arte: 
-- David Martínez García
-Sonidos y Música: 
-- Jaime Alonso del Real
-Testeo: 
-- Cristian Boabes
-- Nasreddin El Khiyat Imusatin
 
+Desarrolladores:
+
+- Cristian Boabes
+- Nasreddin El Khiyat Imusatin
+- Jaime Alonso del Real
+- David Martínez García
+
+Arte: 
+
+- David Martínez García
+
+Sonidos y Música: 
+
+- Jaime Alonso del Real
+
+Testeo: 
+
+- Cristian Boabes
+- Nasreddin El Khiyat Imusatin
 
 Gracias por jugar
         `;
 
-        this.credits = this.add.text(400, 280, creditsText, {
+        this.credits = this.add.text(500, 300, creditsText, {
             fontSize: '24px',
             color: '#ffffff',
             align: 'center',
             wordWrap: { width: 700 }
         }).setOrigin(0.5);
 
-        // Tween: pequeño movimiento de 'flotación' (bobbing)
-        // mueve los créditos unos pocos píxeles arriba/abajo en bucle
         this.tweens.add({
             targets: this.credits,
             y: this.credits.y - 15,
@@ -63,12 +68,11 @@ Gracias por jugar
             ease: 'Sine.easeInOut',
             yoyo: true,
             repeat: -1,
-            // ligera variación de inicio para no sincronizar exactamente si hay otros objetos
             delay: 200,
         });
 
         // BOTÓN PARA VOLVER
-        this.localBtn = this.add.text(400, 500, 'Volver', {
+        this.localBtn = this.add.text(500, 570, 'Volver', {
             fontSize: '24px',
             color: '#e18fa1ff',
         }).setOrigin(0.5)
@@ -83,7 +87,4 @@ Gracias por jugar
     }
 
 
-    update() {
-        // El movimiento de los créditos lo gestiona el tween creado en create()
-    }
 }

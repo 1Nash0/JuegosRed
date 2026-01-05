@@ -7,6 +7,10 @@
 
 import express from 'express';
 
+/**
+ *
+ * @param messageController
+ */
 export function createMessageRoutes(messageController) {
   const router = express.Router();
 

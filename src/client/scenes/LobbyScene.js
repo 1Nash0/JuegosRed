@@ -1,3 +1,4 @@
+import Phaser from 'phaser';
 /**
  * Lobby Scene - Waiting for multiplayer matchmaking
  */

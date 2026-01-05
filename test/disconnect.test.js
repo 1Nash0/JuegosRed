@@ -9,10 +9,10 @@ import { createGameRoomService } from '../src/server/services/gameRoomService.js
   const u1 = userService.createUser({ email: 'd1@example.com', name: 'D1' });
   const u2 = userService.createUser({ email: 'd2@example.com', name: 'D2' });
 
-  const ws1 = { send: (m) => {}, player: u1 };
-  const ws2 = { send: (m) => {}, player: u2 };
+  const ws1 = { send: (_m) => {}, player: u1 };
+  const ws2 = { send: (_m) => {}, player: u2 }; 
 
-  const roomId = gameRoomService.createRoom(ws1, ws2);
+  const _roomId = gameRoomService.createRoom(ws1, ws2);
 
   // Simulate some points
   gameRoomService.handleGoal(ws2, 'right'); // player1 scores

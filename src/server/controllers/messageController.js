@@ -12,10 +12,17 @@
  * - Validar datos de entrada
  */
 
+/**
+ *
+ * @param messageService
+ */
 export function createMessageController(messageService) {
   /**
    * POST /api/messages - Enviar un nuevo mensaje
    * Body: {email, message}
+   * @param req
+   * @param res
+   * @param next
    */
   async function create(req, res, next) {
     try {
@@ -38,6 +45,12 @@ export function createMessageController(messageService) {
     }
   }
 
+  /**
+   *
+   * @param req
+   * @param res
+   * @param next
+   */
   async function getMessages(req, res, next) {
     try {
       const { since, limit } = req.query;
