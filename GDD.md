@@ -101,11 +101,15 @@
 - Escenario base sin los agujeros
 ![Escenario base](./public/assets/fondo_game.png)
 - Pantalla de créditos
+
 ![PowerUp de tiempo](./public/assets/FondoCreditos.png)
+
 - Iconos de power-ups
+
 ![PowerUp de tiempo](./public/assets/relojarena.png)
 -
 ![PowerUp de termómetro](./public/assets/termometro.png) 
+
 - **Logo:**
 ![Logo](./public/assets/Logo.png)
 ---
