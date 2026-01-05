@@ -176,7 +176,7 @@ export class MenuScene extends Phaser.Scene {
                 try {
                     if (data.connected) {
                         this.connectionText.setText(`Servidor: ${data.count} usuario(s) conectado(s)`);
-                        this.connectionText.setColor('#00ff00');
+                        this.connectionText.setColor('#0d3533ff');
                     } else {
                         this.connectionText.setText('Servidor: Desconectado');
                         this.connectionText.setColor('#ff0000');

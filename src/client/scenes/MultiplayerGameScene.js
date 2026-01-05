@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { Paddle } from '../entities/Paddle';
+
 
 /**
  * Multiplayer Game Scene - Online pong game
