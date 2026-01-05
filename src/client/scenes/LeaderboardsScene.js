@@ -65,50 +65,48 @@ export class LeaderboardsScene extends Phaser.Scene {
             this.loadingText.setText('Cargando rankings...');
             this.loadingText.setVisible(true);
 
-            // 1) Intentar obtener entradas detalladas desde /api/leaderboards (más precisa)
-            let response = await fetch('/api/leaderboards');
-            if (!response.ok) {
-                // no fatal: caeremos al fallback
-                console.warn('[LeaderboardsScene] /api/leaderboards returned', response.status);
-            }
-
-            let rankedUsers = [];
-
-            if (response.ok) {
-                const entries = await response.json();
-                // entries son objetos { userId, name, avatar, score, opponent, character, timestamp }
-                if (Array.isArray(entries) && entries.length > 0) {
-                    // Agrupar por userId (o name si no hay id) y quedarnos con max score
-                    const map = new Map();
-                    for (const e of entries) {
-                        const key = e.userId || e.name || e.email || (e.userId || 'unknown');
-                        const existing = map.get(key) || { name: e.name || key, maxScore: 0 };
-                        existing.maxScore = Math.max(existing.maxScore, Number(e.score) || 0);
-                        map.set(key, existing);
+            // Intentar obtener entradas detalladas desde /api/leaderboards (más precisa)
+            let topEntries = [];
+            try {
+                const resp = await fetch('/api/leaderboards');
+                if (resp.ok) {
+                    const entries = await resp.json();
+                    if (Array.isArray(entries) && entries.length > 0) {
+                        // Normalizar entradas a { name, score, character }
+                        topEntries = entries.map(e => ({
+                            name: e.name || e.userId || 'unknown',
+                            score: Number(e.score) || 0,
+                            character: e.character || null,
+                            timestamp: e.timestamp || null
+                        })).sort((a, b) => b.score - a.score).slice(0, 10);
+                    } else {
+                        console.warn('[LeaderboardsScene] /api/leaderboards returned empty');
                     }
-                    rankedUsers = Array.from(map.values()).sort((a, b) => b.maxScore - a.maxScore).slice(0, 10);
+                } else {
+                    console.warn('[LeaderboardsScene] /api/leaderboards returned', resp.status);
                 }
+            } catch (err) {
+                console.warn('[LeaderboardsScene] /api/leaderboards fetch failed', err);
             }
 
-            // 2) Fallback: si no obtuvimos entradas, usar /api/users y ordenar por maxScore
-            if (!rankedUsers || rankedUsers.length === 0) {
-                response = await fetch('/api/users');
+            // Fallback: si no obtuvimos entradas, usar /api/users y ordenar por maxScore
+            if (!topEntries || topEntries.length === 0) {
+                const response = await fetch('/api/users');
                 if (!response.ok) throw new Error('Error al cargar usuarios');
                 const users = await response.json();
-                rankedUsers = users
+                topEntries = users
                     .filter(u => typeof u.maxScore === 'number' && u.maxScore > 0)
                     .sort((a, b) => b.maxScore - a.maxScore)
                     .slice(0, 10)
-                    .map(u => ({ name: u.name, maxScore: u.maxScore }));
+                    .map(u => ({ name: u.name, score: u.maxScore, character: u.bestCharacter || null }));
             }
-
             // Limpiar contenedor
             this.rankingsContainer.removeAll();
 
             // Mostrar número de entradas
-            this.countText.setText(`Jugadores: ${rankedUsers.length}`);
+            this.countText.setText(`Puntuaciones: ${topEntries.length}`);
 
-            if (rankedUsers.length === 0) {
+            if (topEntries.length === 0) {
                 this.loadingText.setText('No hay puntuaciones registradas');
                 this.loadingText.setColor('#ffff00');
                 return;
@@ -117,11 +115,12 @@ export class LeaderboardsScene extends Phaser.Scene {
             // Ocultar texto de carga
             this.loadingText.setVisible(false);
 
-            // Mostrar rankings (maxScore por usuario)
-            rankedUsers.forEach((user, index) => {
+            // Mostrar rankings con el carácter
+            topEntries.forEach((entry, index) => {
                 const y = index * 30;
                 const rank = index + 1;
-                const text = this.add.text(0, y, `${rank}. ${user.name} - ${user.maxScore}`, {
+                const character = entry.character ? ` (${entry.character})` : '';
+                const text = this.add.text(0, y, `${rank}. ${entry.name} - ${entry.score}${character}`, {
                     fontSize: '18px',
                     color: '#ffffff',
                     fontFamily: 'Arial'

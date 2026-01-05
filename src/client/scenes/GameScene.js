@@ -762,6 +762,19 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updateData)
       });
+
+      // También guardar la puntuación con el carácter en el historial
+      if (score > 0) {
+        await fetch(`/api/users/${user.id}/scores`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            score: score,
+            opponent: 'computer',
+            character: character
+          })
+        });
+      }
     } catch (error) {
       console.error('Error updating user score:', error);
     }
