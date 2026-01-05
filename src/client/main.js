@@ -7,6 +7,7 @@ import { SettingsScene } from './scenes/SettingsScene.js';
 import { ConnectionLostScene } from './scenes/ConnectionLostScene.js';
 import LobbyScene from './scenes/LobbyScene.js';
 import { MultiplayerGameScene } from './scenes/MultiplayerGameScene.js';
+import { LeaderboardsScene } from './scenes/LeaderboardsScene.js';
 import { connectionManager } from './services/ConnectionManager.js';
 
 const config = {
@@ -21,7 +22,7 @@ const config = {
             debug: false
         }
     },
-    scene: [MenuScene, GameScene, PauseScene, CreditScene, SettingsScene, ConnectionLostScene, LobbyScene, MultiplayerGameScene],
+    scene: [MenuScene, GameScene, PauseScene, CreditScene, SettingsScene, ConnectionLostScene, LobbyScene, MultiplayerGameScene, LeaderboardsScene],
     backgroundColor: '#1a1a2e',
 }
 
