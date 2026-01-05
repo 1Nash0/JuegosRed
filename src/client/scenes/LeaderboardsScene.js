@@ -43,7 +43,7 @@ export class LeaderboardsScene extends Phaser.Scene {
         // Botón de volver
         const backBtn = this.add.text(500, 550, 'Volver al Menú', {
             fontSize: '24px',
-            color: '#00ff00',
+            color: '#e18fa1ff',
             fontFamily: 'Arial'
         }).setOrigin(0.5)
         .setInteractive({ useHandCursor: true })
