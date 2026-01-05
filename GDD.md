@@ -110,9 +110,9 @@
   
  - Iconos de power-ups
  - 
-   ![PowerUp de tiempo](./public/assets/reloj.png)
+ ![PowerUp de tiempo](./public/assets/relojarena.png)
  -
-   ![PowerUp de termómetro](./public/assets/relojarena.png)
+ ![PowerUp de termómetro](./public/assets/termometro.png)
    
 
 - **Logo:**
