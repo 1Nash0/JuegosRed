@@ -9,15 +9,15 @@ export class MenuScene extends Phaser.Scene {
     preload() {
 
         // IMÁGENES
-    this.load.image('Titulo', 'assets/Bocetos/FondoJuego.png'); // fondo(titulo) 
+    this.load.image('Titulo', 'assets/Bocetos/FondoJuego.png'); // fondo(titulo)
+    this.load.image('Menu', 'assets/titulopng.png'); //titulo 
 
         // SONIDOS
-  this.load.audio('Musica_menu', 'assets/Sonidos para_red/Its Safe Now.mp3');
+    this.load.audio('Musica_menu', 'assets/Sonidos para_red/Its Safe Now.mp3');
     this.load.audio('Boton', 'assets/Sonidos para_red/Boton.mp3');  
 }
 
     create() {
-
         // SONIDOS - Si ya hay música de menú sonando, reutilizarla; si no, detener y crearla
         // @ts-ignore - propiedad adjunta al objeto game en tiempo de ejecución
         const existingMusic = this.game && this.game.musicaMenu;
@@ -31,21 +31,16 @@ export class MenuScene extends Phaser.Scene {
             this.game.musicaMenu = this.musicaMenu;
         }
 
+        const titleImage = this.add.image(this.scale.width / 2, 100, 'Menu');
+        titleImage.setOrigin(0.5);
+        titleImage.setScale(0.6);
+
         const bg = this.add.image(0, 0, 'Titulo').setOrigin(0, 0);  //fondo(titulo)
         bg.setDisplaySize(this.scale.width, this.scale.height);
 
-
-        this.add.text(380, 200, 'MOLE', {
-            fontSize: '72px',
-            color: '#892327',
-            fontStyle: 'bold',
-            fontFamily: 'roboto'
-        }).setOrigin(0.5);
-            this.add.text(600, 200, 'HOLE', {
-            fontSize: '72px',
-            color: '#253754',
-            fontFamily: 'roboto'
-        }).setOrigin(0.5);
+        const titleImg = this.add.image(490, 200, 'Menu');
+        titleImg.setOrigin(0.5);
+        titleImg.setScale(0.7);
 
         const localBtn = this.add.text(500, 320, 'Local 2 Jugadores', {
             fontSize: '30px',
