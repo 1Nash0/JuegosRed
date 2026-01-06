@@ -157,7 +157,7 @@
 
  - Iconos de power-ups
     
- ![Pantalla de créditos](./public/assets/FondoCreditos.png)
+ ![Pantalla de créditos](./public/assets/relojarena.png)
  -
  ![PowerUp de termómetro](./public/assets/termometro.png)
 
