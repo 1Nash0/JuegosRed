@@ -222,12 +222,12 @@ wss.on('connection', (ws) => {
 
 // ==================== INICIO DEL SERVIDOR ====================
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log('========================================');
   console.log('  SERVIDOR DE CHAT PARA VIDEOJUEGO');
   console.log('========================================');
-  console.log(`  Servidor corriendo en http://localhost:${PORT}`);
-  console.log(`  WebSocket disponible en ws://localhost:${PORT}`);
+  console.log(`  Servidor corriendo en http://0.0.0.0:${PORT}`);
+  console.log(`  WebSocket disponible en ws://0.0.0.0:${PORT}`);
   console.log(`  `);
   console.log(`  🎮 Juego: http://localhost:${PORT}`);
   console.log(`  `);
