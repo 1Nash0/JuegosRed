@@ -10,10 +10,10 @@
 6. [Arte y Diseño Visual](#6-arte-y-diseño-visual)
 7. [Usuarios y Persistencia](#7-usuarios-y-persistencia)
 8. [Gestión de Conexiones](#8-gestión-de-conexiones)
-9. [Sonido](#7-sonido)
-10. [Narrativa](#8-narrativa)
-11. [Diagrama de Flujo](#9-diagrama-de-flujo)
-12. [Referencias Externas](#10-referencias-externas)
+9. [Sonido](#9-sonido)
+10. [Narrativa](#10-narrativa)
+11. [Diagrama de Flujo](#11-diagrama-de-flujo)
+12. [Referencias Externas](#12-referencias-externas)
 
 
 
