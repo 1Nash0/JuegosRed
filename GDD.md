@@ -8,10 +8,12 @@
 4. [Controles](#4-controles)
 5. [Físicas y Escenario](#5-físicas-y-escenario)
 6. [Arte y Diseño Visual](#6-arte-y-diseño-visual)
-7. [Sonido](#7-sonido)
-8. [Narrativa](#8-narrativa)
-9. [Diagrama de Flujo](#9-diagrama-de-flujo)
-10. [Referencias Externas](#10-referencias-externas)
+7. [Usuarios y Persistencia](#7-usuarios-y-persistencia)
+8. [Gestión de Conexiones](#8-gestión-de-conexiones)
+9. [Sonido](#7-sonido)
+10. [Narrativa](#8-narrativa)
+11. [Diagrama de Flujo](#9-diagrama-de-flujo)
+12. [Referencias Externas](#10-referencias-externas)
 
 
 
@@ -33,6 +35,11 @@
   - *Jugador 1:* el mazo, que debe golpear al topo que aparece en diferentes agujeros.
   - *Jugador 2:* el topo, que debe engañar y esquivar al mazo, apareciendo en lugares estratégicos y usando power-ups para sumar puntos.
 * El objetivo es acumular más puntos que el oponente antes de que el tiempo termine.
+* El juego se ejecuta en una arquitectura cliente-servidor, donde el servidor se encarga de:
+- Gestionar el estado de las partidas
+- Validar puntuaciones y eventos
+- Controlar las conexiones de los jugadores
+
 ---
 
 ## 3. Mecánicas de Juego
@@ -45,6 +52,15 @@
 - Mejora: el mazo obtiene un aumento durante un período de tiempo que le permite golpear más fuerte obteniendo el doble de puntos y provocando que el topo pierda el doble. Si el mazo golpea una trampa mientras el efecto esta activo, ninguno de los bandos pierde o gana puntos
 - El juego contará con un reloj, en alguna zona de la pantalla que no moleste, que medirá en tiempo restante, una vez se termine el tiempo, el jugador con más puntos ganará la partida y se deberá iniciar otra partida para seguir jugando.
 - Tiempo extra: Power-up pudiendo se agarrado por el mazo o el topo que aumenta el tiempo en 30 segundos por cada uso, hasta un máximo de 1:30, es decir, sólo puede ser usado 3 veces, a partir de ese momento dejará de aparecer.
+### Lógica cliente-servidor
+- El cliente se encarga de la representación visual, controles y animaciones.
+- El servidor valida:
+  - Golpes acertados
+  - Uso de power-ups
+  - Puntuaciones
+  - Tiempo de partida
+- El estado de la partida se sincroniza mediante peticiones REST.
+
 
 ---
 
@@ -73,13 +89,39 @@
 - **Colisiones:** simples, detección de impacto al hacer clic en el agujero activo. 
 - **Spawn de power-ups:** aleatorio, con sistema de control para evitar repeticiones consecutivas.
 - **UI:**
- - Reloj visible en la parte superior central.
- - Marcadores de puntos a izquierda y derecha.
- - Barra de estado para power-ups y cooldown.
+  - Reloj visible en la parte superior central.
+  - Marcadores de puntos a izquierda y derecha.
+  - Barra de estado para power-ups y cooldown.
+  - Indicador de conexión al servidor en el menú principal:
+    - Estado de conexión (conectado / desconectado)
+    - Número de jugadores conectados
+- **Sincronización:** 
+  - El servidor mantiene el estado oficial del juego.
+  - El cliente consulta periódicamente el estado para mantener la coherencia.
+
 
 ---
 
-## 6. Arte y Diseño Visual
+## 6. Usuarios y Persistencia
+- El juego contará con un sistema de usuarios basado en nickname.
+- El servidor almacenará:
+  - Nickname del jugador
+  - Puntuación máxima alcanzada
+  - Número de partidas jugadas
+- Estos datos podrán consultarse desde el cliente.
+  
+---
+
+## 7. Gestión de Conexiones
+- El cliente realiza peticiones periódicas al servidor para comprobar la conexión.
+- Si se pierde la conexión:
+  - Se pausa el juego
+  - Se muestra una escena de reconexión
+- El servidor registra las conexiones y desconexiones mediante logs.
+
+---
+
+## 8. Arte y Diseño Visual
 - **Estilo:** Cartoon 
 - **Cámara:** Top–down.  
 - **Colores:** Paleta de colores vivos.
@@ -114,7 +156,6 @@
  ![PowerUp de tiempo](./public/assets/FondoCreditos.png)
 
  - Iconos de power-ups
- - 
    
  ![PowerUp de tiempo](./public/assets/relojarena.png)
  -
@@ -127,7 +168,7 @@
 
 ---
 
-## 7. Sonido
+## 9. Sonido
 - **Música:** BGM espacial retro estilo arcade.  
 - **Efectos:**
 - Sonido de golpe de mazo cuando el mazo golpea en la mesa y no da que al topo.
@@ -136,7 +177,7 @@
 
 ---
 
-## 8. Narrativa
+## 10. Narrativa
 - Erase una vez dos grandes amigos, Pin y Pom. Ambos crecieron juntos, con el mismo sueño, hacer que los malhechores estuviesen entre rejas, esto es debido a un recuerdo traumático de ambos, la muerte de otro gran amigo suyo a manos de un delincuente. Los dos crecieron apoyándose el uno al otro, tanto en los estudios como en otros temas. Al llegar a la universidad consiguieron su título y por fin llegaron a ser abogados. Su fama como pareja de abogados crecía como la espuma puesto que cuando estaban juntos no había ningún caso que se les resistiera. Sin embargo, el destino decidió jugársela poniéndolos en contra en un caso que llevaría a su separación. Pom acabó ganando a través de malas prácticas y Pin quedó solo. Con el tiempo, empezaron a distanciarse más todavía, Pom aumentaba su fama, pero Pin intentaba sacar a la luz sus trapos sucios. Al final, Pom acabó convirtiéndose en juez y en su primer caso, encontró a Pin y decidió, a partir de ese momento, hacerle la vida imposible.
 - **Personajes:**  
   - *Pom* – Juez Pingüino
@@ -144,10 +185,10 @@
 
 ---
 
-## 9. Diagrama de Flujo
+## 11. Diagrama de Flujo
 
 ![Diagrama de flujo](./public/assets/Diagrama.png)
 
-## 10. Referencias externas
+## 12. Referencias externas
 - Dibujos inspirados en "Bojack Horseman"
 - Música del "HotLine Miami"
