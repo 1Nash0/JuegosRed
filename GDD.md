@@ -131,7 +131,7 @@
   - Power-up recogido
 - **Bocetos:**
  - Personajes principales
--
+ -
  ![Boceto de personaje](./public/assets/Bocetos/Personajes.png)
  -
  ![Boceto de personajes a color](./public/assets/Bocetos/Inicio.png)
@@ -156,14 +156,14 @@
  ![Pantalla de créditos](./public/assets/FondoCreditos.png)
 
  - Iconos de power-ups
- -   
+    
  ![Pantalla de créditos](./public/assets/FondoCreditos.png)
  -
  ![PowerUp de termómetro](./public/assets/termometro.png)
 
 
 - **Logo:**
--
+
 ![Logo](./public/assets/Logo.png)
 
 ---
