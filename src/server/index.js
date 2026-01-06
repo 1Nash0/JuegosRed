@@ -177,6 +177,30 @@ wss.on('connection', (ws) => {
           matchmakingService.leaveQueue(ws);
           break;
 
+        case 'moleMove':
+          gameRoomService.handleMoleMove(ws, data.holeIndex);
+          break;
+
+        case 'moleMiss':
+          gameRoomService.handleMoleMiss(ws);
+          break;
+
+        case 'hammerHitResult':
+          gameRoomService.handleHammerHitResult(ws, data.hit, data.miss);
+          break;
+
+        case 'requestPowerupSpawn':
+          gameRoomService.handlePowerupSpawnRequest(ws);
+          break;
+
+        case 'powerupPickup':
+          gameRoomService.handlePowerupPickup(ws, data.playerId);
+          break;
+
+        case 'powerupUse':
+          gameRoomService.handlePowerupUse(ws, data.playerId);
+          break;
+
         default:
           console.log('Mensaje desconocido:', data.type);
       }
