@@ -124,8 +124,7 @@ export default class LobbyScene extends Phaser.Scene {
         this.scene.start('MultiplayerGameScene', {
           ws: this.ws,
           playerRole: data.role,
-          roomId: data.roomId,
-          initialBall: data.ball
+          roomId: data.roomId
         });
         break;
 

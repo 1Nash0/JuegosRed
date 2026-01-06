@@ -1,10 +1,14 @@
 import Phaser from 'phaser';
+import { Pom } from '../entities/Pom';
+import { Pin } from '../entities/Pin';
 
+const POWERUP_CLOCK = 'clock';
+const POWERUP_THERMOMETER = 'thermometer';
 
 /**
- * Multiplayer Game Scene - Online pong game
- * Ball physics run on both clients (deterministic)
- * Server only tracks scores and relays paddle positions
+ * Multiplayer Whack-a-Mole Game Scene
+ * Player 1 controls the hammer (Pom), Player 2 controls the mole (Pin)
+ * Server synchronizes game state via WebSocket
  */
 export class MultiplayerGameScene extends Phaser.Scene {
 
@@ -16,72 +20,204 @@ export class MultiplayerGameScene extends Phaser.Scene {
         this.ws = data.ws;
         this.playerRole = data.playerRole; // 'player1' or 'player2'
         this.roomId = data.roomId;
-        this.initialBall = data.initialBall;
-        this.ball = null;
-        this.isPaused = false;
-        this.gameEnded = false;
-        this.localPaddle = null;
-        this.remotePaddle = null;
-        this.localScore = 0;
-        this.remoteScore = 0;
+
+        // Game state
+        this.timeLeft = 60;
+        this.isGameOver = false;
+
+        // Scores
+        this.puntosPlayer1 = 0; // Pom (Player 1)
+        this.puntosPlayer2 = 0; // Pin (Player 2)
+
+        // Powerup config & state
+        this.powerupAmount = 20;
+        this.powerupMaxStoredP1 = 3;
+        this.powerupMaxStoredP2 = 3;
+        this.powerupStoredP1 = [];
+        this.powerupStoredP2 = [];
+        this.powerupsUsedP1 = 0;
+        this.powerupsUsedP2 = 0;
+
+        this.powerup = null;
+        this.powerupHoleIndex = -1;
+        this.powerupDuration = 5000;
+        this.powerupSpawnMin = 4000;
+        this.powerupSpawnMax = 12000;
+
+        // Thermometer effect
+        this.thermometerEffectActive = false;
+        this.pinBlocked = false;
+        this.thermometerTimer = null;
+
+        // timers / references
+        this.topoTimer = null;
+        this.gameTimer = null;
+    }
+
+    preload() {
+        // IMÁGENES
+        this.load.image('fondo', 'assets/FondoGameplay.png');
+        this.load.image('Martillo', 'assets/mazo.png');
+        this.load.image('bojack', 'assets/pin.png');
+        this.load.image('Pingolpeado', 'assets/pingolpeado.png');
+        this.load.image('reloj', 'assets/relojarena.png');
+        this.load.image('agujero', 'assets/agujero.png');
+        this.load.image('termometro', 'assets/termometro.png');
+
+        // SONIDOS
+        this.load.audio('Musica_nivel', 'assets/Sonidos para_red/Hydrogen.mp3');
+        this.load.audio('Castor', 'assets/Sonidos para_red/Castor.mp3');
+        this.load.audio('Golpe', 'assets/Sonidos para_red/Golpe.mp3');
+        this.load.audio('Sonido_martillo', 'assets/Sonidos para_red/Martillo_juez.mp3');
+        this.load.audio('Boton', 'assets/Sonidos para_red/Boton.mp3');
+        this.load.audio('Frio', 'assets/Sonidos para_red/Tembleque.mp3');
     }
 
     create() {
-        this.add.rectangle(400, 300, 800, 600, 0x1a1a2e);
+        // Background & UI container
+        this.add.rectangle(500, 300, 1000, 600, 0x1a1a2e);
+        const bg = this.add.image(0, 0, 'fondo').setOrigin(0, 0);
+        bg.setDisplaySize(this.scale.width, this.scale.height);
 
-        // Center discontinued line
-        for (let i = 0; i < 12; i++) {
-            this.add.rectangle(400, i * 50 + 25, 10, 30, 0x444444);
+        this.add.image(200, 480, 'agujero').setScale(0.5);
+        this.add.image(320, 320, 'agujero').setScale(0.5);
+        this.add.image(440, 480, 'agujero').setScale(0.5);
+        this.add.image(560, 320, 'agujero').setScale(0.5);
+        this.add.image(680, 480, 'agujero').setScale(0.5);
+        this.add.image(800, 320, 'agujero').setScale(0.5);
+
+        // Sonido de fondo
+        this.musicaNivel = this.sound.add('Musica_nivel');
+        this.musicaNivel.play({ loop: true, volume: 0.5 });
+
+        // Cursor: ocultamos por defecto; la entidad Pom puede mostrar su propio sprite
+        this.input.mouse.disableContextMenu();
+        this.game.canvas.style.cursor = 'none';
+
+        // Martillo que sigue al ratón (Pom) - only for Player 1
+        if (this.playerRole === 'player1') {
+            this.martillo = new Pom(
+                this,
+                'Martillo',
+                this.input.activePointer.x,
+                this.input.activePointer.y
+            );
         }
 
-        // Score texts
-        this.scoreLeft = this.add.text(100, 50, '0', {
-            fontSize: '48px',
-            color: '#00ff00'
-        });
+        // Scores arriba a la izquierda y derecha
+        this.scorePlayer1 = this.add.text(80, 50, 'Pom: 0', {
+            fontSize: '32px',
+            color: '#6a7cb4ff',
+            fontStyle: 'bold',
+            fontFamily: 'Arial'
+        }).setOrigin(0, 0);
 
-        this.scoreRight = this.add.text(700, 50, '0', {
-            fontSize: '48px',
-            color: '#00ff00'
-        });
+        this.scorePlayer2 = this.add.text(850, 50, 'Pin: 0', {
+            fontSize: '32px',
+            color: '#9e4b4bff',
+            fontStyle: 'bold',
+            fontFamily: 'Arial'
+        }).setOrigin(0, 0);
+
+        // Timer abajo a la derecha
+        this.timerText = this.add.text(
+            this.scale.width - 20,
+            this.scale.height - 20,
+            this.formatTime(this.timeLeft),
+            { fontSize: '40px',fontStyle: 'bold', color: '#ffffffff', fontFamily: 'Arial' }
+        ).setOrigin(1, 1);
+
+        // Powerup UI
+        this.powerupTextP1 = this.add.text(80, 80, `P1 Powerups: ${this.powerupStoredP1}/${this.powerupMaxStoredP1}`, {
+            fontSize: '16px',
+            color: '#6a7cb4ff',
+            fontStyle: 'bold',
+            fontFamily: 'Arial'
+        }).setOrigin(0, 0);
+
+        this.powerupTextP2 = this.add.text(this.scale.width + 20, 80, `P2 Powerups: ${this.powerupStoredP2}/${this.powerupMaxStoredP2}`, {
+            fontSize: '16px',
+            color: '#9e4b4bff',
+            fontStyle: 'bold',
+            fontFamily: 'Arial'
+        }).setOrigin(1.5, 0);
 
         // Role indicator
-        const roleText = this.playerRole === 'player1' ? 'You are Player 1 (Left)' : 'You are Player 2 (Right)';
+        const roleText = this.playerRole === 'player1' ? 'You are Pom (Hammer)' : 'You are Pin (Mole)';
         this.add.text(400, 20, roleText, {
             fontSize: '16px',
             color: '#ffff00'
         }).setOrigin(0.5);
 
-        this.createBounds();
-        this.createBall();
-        this.setUpPlayers();
+        // Teclas: solo se crean una vez
+        this.keys = this.input.keyboard.addKeys({
+            one: Phaser.Input.Keyboard.KeyCodes.ONE,
+            two: Phaser.Input.Keyboard.KeyCodes.TWO,
+            three: Phaser.Input.Keyboard.KeyCodes.THREE,
+            four: Phaser.Input.Keyboard.KeyCodes.FOUR,
+            five: Phaser.Input.Keyboard.KeyCodes.FIVE,
+            six: Phaser.Input.Keyboard.KeyCodes.SIX,
+            esc: Phaser.Input.Keyboard.KeyCodes.ESC,
+            space: Phaser.Input.Keyboard.KeyCodes.SPACE
+        });
 
-        // Add colliders
-        this.physics.add.collider(this.ball, this.localPaddle.sprite);
-        this.physics.add.collider(this.ball, this.remotePaddle.sprite);
-        this.physics.add.overlap(this.ball, this.leftGoal, this.scoreLeftGoal, null, this);
-        this.physics.add.overlap(this.ball, this.rightGoal, this.scoreRightGoal, null, this);
+        // Resume handler (cuando vuelves desde pausa)
+        this.events.on('resume', this.onResume, this);
+
+        // Crear topo (Pin)
+        this.createTopos();
+
+        // Start powerup spawns
+        this.scheduleNextPowerup();
+
+        // Evento topo popped: recoge el powerup automáticamente para P2 si coincide
+        this.events.off('topoPopped'); // aseguramos que no haya duplicados
+        this.events.on('topoPopped', (data = {}) => {
+            if (this.isGameOver) return;
+            if (this.powerup && this.powerupHoleIndex === data.holeIndex) {
+                // Si el topo aparece exactamente en el powerup -> se recoge para P2 (Pin)
+                this.pickupPowerupByPlayer(2);
+            }
+        });
+
+        // Evento topo missed: cuando el topo desaparece sin ser golpeado, punto para P2
+        this.events.off('topoMissed'); // aseguramos que no haya duplicados
+        this.events.on('topoMissed', (_data = {}) => {
+            if (this.isGameOver) return;
+            if (!this.pinBlocked && this.playerRole === 'player2') {
+                // Only player 2 sends the miss message
+                this.sendMessage({ type: 'moleMiss' });
+            }
+        });
+
+        // Input pointer: manejador único - only for Player 1
+        if (this.playerRole === 'player1') {
+            this.input.on('pointerdown', (pointer) => this.handlePointerDown(pointer));
+        }
+
+        // Timer cuenta atrás
+        this.gameTimer = this.time.addEvent({
+            delay: 1000,
+            loop: true,
+            callback: () => {
+                if (this.isGameOver) return;
+                this.timeLeft--;
+                this.timerText.setText(this.formatTime(this.timeLeft));
+                if (this.timeLeft <= 0) {
+                    this.endRound();
+                }
+            }
+        });
+
+        // Aseguramos que los textos y UI estén sincronizados
+        this.updateScoreUI();
+        this.updatePowerupUI();
 
         // Set up WebSocket listeners
         this.setupWebSocketListeners();
-
-        // Set up input - both players use arrow keys
-        this.cursors = this.input.keyboard.createCursorKeys();
-
-        // Launch ball with server-provided initial state
-        this.ball.setVelocity(this.initialBall.vx, this.initialBall.vy);
     }
 
-    setUpPlayers() {
-        // Create paddles based on player role
-        if (this.playerRole === 'player1') {
-            this.localPaddle = new Paddle(this, 'player1', 50, 300);
-            this.remotePaddle = new Paddle(this, 'player2', 750, 300);
-        } else {
-            this.localPaddle = new Paddle(this, 'player2', 750, 300);
-            this.remotePaddle = new Paddle(this, 'player1', 50, 300);
-        }
-    }
+    
 
     setupWebSocketListeners() {
         this.ws.onmessage = (event) => {
@@ -95,14 +231,14 @@ export class MultiplayerGameScene extends Phaser.Scene {
 
         this.ws.onclose = () => {
             console.log('WebSocket connection closed');
-            if (!this.gameEnded) {
+            if (!this.isGameOver) {
                 this.handleDisconnection();
             }
         };
 
         this.ws.onerror = (error) => {
             console.error('WebSocket error:', error);
-            if (!this.gameEnded) {
+            if (!this.isGameOver) {
                 this.handleDisconnection();
             }
         };
@@ -110,28 +246,44 @@ export class MultiplayerGameScene extends Phaser.Scene {
 
     handleServerMessage(data) {
         switch (data.type) {
-            case 'paddleUpdate':
-                // Update opponent's paddle position
-                this.remotePaddle.sprite.y = data.y;
+            case 'moleMove':
+                // Update mole position
+                if (this.topo) {
+                    this.topo.moveToHole(data.holeIndex);
+                }
+                break;
+
+            case 'hammerHit':
+                // Process hammer hit
+                this.handleHammerHit(data.x, data.y);
+                break;
+
+            case 'powerupSpawn':
+                // Spawn powerup at hole
+                this.spawnPowerupAtHole(data.holeIndex, data.powerupType);
+                break;
+
+            case 'powerupPickup':
+                // Player picked up powerup
+                this.pickupPowerupByPlayer(data.playerId);
+                break;
+
+            case 'powerupUse':
+                // Player used powerup
+                this.usePowerupByPlayer(data.playerId);
                 break;
 
             case 'scoreUpdate':
-                // Update scores from server
-                this.localScore = this.playerRole === 'player1' ? data.player1Score : data.player2Score;
-                this.remoteScore = this.playerRole === 'player1' ? data.player2Score : data.player1Score;
-
-                this.scoreLeft.setText(data.player1Score.toString());
-                this.scoreRight.setText(data.player2Score.toString());
-
-                // Stop ball, server will relaunch it
-                this.ball.setVelocity(0, 0);
-                this.ball.setPosition(400, 300);
+                // Update scores
+                this.puntosPlayer1 = data.player1Score;
+                this.puntosPlayer2 = data.player2Score;
+                this.updateScoreUI();
                 break;
 
-            case 'ballRelaunch':
-                // Server is relaunching the ball with new velocity
-                this.ball.setPosition(data.ball.x, data.ball.y);
-                this.ball.setVelocity(data.ball.vx, data.ball.vy);
+            case 'timeUpdate':
+                // Synchronize time
+                this.timeLeft = data.timeLeft;
+                this.timerText.setText(this.formatTime(this.timeLeft));
                 break;
 
             case 'gameOver':
@@ -147,54 +299,317 @@ export class MultiplayerGameScene extends Phaser.Scene {
         }
     }
 
-    scoreLeftGoal() {
-        if (this.gameEnded) return;
+    // ----------------------
+    // Helper: pointer handler
+    // ----------------------
+    handlePointerDown(pointer) {
+        if (this.isGameOver || this.playerRole !== 'player1') return;
 
-        // Ball hit LEFT goal (x=0), so notify server
-        this.sendMessage({ type: 'goal', side: 'left' });
+        const isLeft = pointer.button === 0 || (pointer.event && pointer.event.button === 0);
+        const isRight = pointer.button === 2 || (pointer.event && pointer.event.button === 2);
+
+        // Si hay powerup y se clickea sobre él
+        if (this.powerup && this.powerup.sprite) {
+            const pBounds = this.powerup.sprite.getBounds();
+            if (pBounds && pBounds.contains(pointer.x, pointer.y)) {
+                if (isLeft) {
+                    this.sendMessage({ type: 'powerupPickup', playerId: 1 });
+                    return;
+                }
+                if (isRight) {
+                    // Si el topo está en el mismo agujero, P2 puede recoger con RMB
+                    if (this.topo && this.powerupHoleIndex === this.topo.currentHoleIndex) {
+                        this.sendMessage({ type: 'powerupPickup', playerId: 2 });
+                    }
+                    return;
+                }
+            }
+        }
+
+        // Si se hace RMB en otro sitio: usar powerup P1 (Pom)
+        if (isRight) {
+            this.sendMessage({ type: 'powerupUse', playerId: 1 });
+            return;
+        }
+
+        // Si LMB: intentar golpear topo
+        if (isLeft) {
+            // animación del martillo SIEMPRE que se golpea
+            if (this.martillo) {
+                this.martillo.hit();
+            }
+
+            // Send hit attempt to server
+            this.sendMessage({
+                type: 'hammerHit',
+                x: pointer.x,
+                y: pointer.y
+            });
+        }
     }
 
-    scoreRightGoal() {
-        if (this.gameEnded) return;
+    handleHammerHit(x, y) {
+        // Determine if it was a hit (this logic runs on player 2's client)
+        let hit = false;
+        let miss = false;
 
-        // Ball hit RIGHT goal (x=800), so notify server
-        this.sendMessage({ type: 'goal', side: 'right' });
+        if (this.topo && this.topo.sprite) {
+            const bounds = this.topo.sprite.getBounds();
+            const smallerBounds = new Phaser.Geom.Rectangle(
+                bounds.x + bounds.width * 0.25,
+                bounds.y + bounds.height * 0.25,
+                bounds.width * 0.5,
+                bounds.height * 0.5
+            );
+            hit = smallerBounds.contains(x, y) && this.topo.isActive;
+        }
+
+        if (!hit && !this.pinBlocked) {
+            miss = true;
+        }
+
+        // Send result to server
+        this.sendMessage({
+            type: 'hammerHitResult',
+            hit,
+            miss
+        });
+
+        // Update local state for immediate feedback (will be overridden by server)
+        if (hit) {
+            this.topo.hide();
+            this.sound.play('Golpe');
+            this.sound.play('Castor');
+            this.cameras.main.shake(200, 0.01);
+        } else if (miss) {
+            this.sound.play('Sonido_martillo');
+        }
+    }
+
+    createTopos() {
+        this.topoHoles = [
+            { x: 200, y: 480 },
+            { x: 320, y: 320 },
+            { x: 440, y: 480 },
+            { x: 560, y: 320 },
+            { x: 680, y: 480 },
+            { x: 800, y: 320 }
+        ];
+
+        this.topo = new Pin(this, 0, this.topoHoles[0].x, this.topoHoles[0].y);
+        this.topo.setHoles(this.topoHoles);
+
+        // El Pin (topo) debe manejar su propio pointerdown; lo conectamos aquí de forma segura:
+        this.topo.sprite.setInteractive();
+        this.topo.sprite.on('pointerdown', (pointer, localX, localY, event) => {
+            // Evitar que el evento burbujee al input global
+            try { if (event && event.stopPropagation) event.stopPropagation(); } catch (err) { console.warn('stopPropagation failed', err); }
+            if (this.isGameOver) return;
+            if (this.topo.isActive && !this.pinBlocked) {
+                // Golpe exitoso -> punto para jugador 1 (Pom)
+                this.puntosPlayer1 += 1;
+                this.updateScoreUI();
+
+                // Animar el martillo cuando golpea
+                if (this.martillo) {
+                    this.martillo.hit();
+                }
+
+                // Marcar el topo como golpeado y procesar el golpe
+                if (typeof this.topo.hit === 'function') {
+                    this.topo.hit();
+                } else {
+                    this.topo.hide();
+                }
+
+                // Sonidos y efecto
+                this.sound.play('Golpe');
+                this.sound.play('Castor');
+
+                this.cameras.main.shake(200, 0.01);
+            }
+        });
+
+        // Timer de aparición del topo (popUp cada X ms si está escondido)
+        this.topoTimer = this.time.addEvent({
+            delay: 1500,
+            loop: true,
+            callback: () => {
+                if (this.isGameOver) return;
+                if (!this.topo.isActive) {
+                    this.topo.popUp();
+                }
+            }
+        });
     }
 
     endGame(winner, player1Score, player2Score) {
-        this.gameEnded = true;
-        this.ball.setVelocity(0, 0);
-        this.localPaddle.sprite.setVelocity(0, 0);
-        this.remotePaddle.sprite.setVelocity(0, 0);
-        this.physics.pause();
+        this.isGameOver = true;
+        this.sound.stopAll();
 
-        const isWinner = (winner === 'player1' && this.playerRole === 'player1') ||
-                        (winner === 'player2' && this.playerRole === 'player2');
+        if (this.game?.canvas?.style) {
+            this.game.canvas.style.cursor = 'auto';
+        }
 
-        const winnerText = isWinner ? 'You Win!' : 'You Lose!';
-        const color = isWinner ? '#00ff00' : '#ff0000';
+        // Desactivar input del juego (NO borrar listeners)
+        this.input.enabled = false;
 
-        this.add.text(400, 200, winnerText, {
-            fontSize: '64px',
-            color: color
-        }).setOrigin(0.5);
+        if (this.martillo?.setVisible) this.martillo.setVisible(false);
+        if (this.topoTimer) this.topoTimer.remove(false);
+        if (this.gameTimer) this.gameTimer.remove(false);
 
-        this.add.text(400, 280, `Final Score: ${player1Score} - ${player2Score}`, {
-            fontSize: '32px',
-            color: '#ffffff'
-        }).setOrigin(0.5);
+        if (this.topo?.sprite) {
+            this.topo.sprite.disableInteractive();
+            this.topo.hide();
+        }
 
-        this.createMenuButton();
+        const cx = this.scale.width / 2;
+        const cy = this.scale.height / 2;
+
+        // ----------------------
+        // Overlay
+        // ----------------------
+        this.add.rectangle(
+            cx,
+            cy,
+            this.scale.width,
+            this.scale.height,
+            0x000000,
+            0.6
+        ).setDepth(100);
+
+        // ----------------------
+        // Panel
+        // ----------------------
+        const panel = this.add.rectangle(cx, cy, 700, 380, 0x0b1220, 0.95)
+            .setStrokeStyle(4, 0x1f6feb)
+            .setDepth(200)
+            .setScale(0.8);
+
+        this.tweens.add({
+            targets: panel,
+            scale: 1,
+            duration: 300,
+            ease: 'Back.Out'
+        });
+
+        // ----------------------
+        // Texto ganador
+        // ----------------------
+        let winnerText = 'Empate 🤝';
+        let color = '#ffffff';
+
+        if (player1Score > player2Score) {
+            winnerText = '🏆 Gana Pom';
+            color = '#6c8bff';
+        } else if (player2Score > player1Score) {
+            winnerText = '🏆 Gana Pin';
+            color = '#ff6b6b';
+        }
+
+        this.add.text(cx, cy - 120, winnerText, {
+            fontSize: '38px',
+            fontStyle: 'bold',
+            color,
+            fontFamily: 'Arial'
+        }).setOrigin(0.5).setDepth(300);
+
+        this.add.text(cx, cy - 40, `Pom: ${player1Score}`, {
+            fontSize: '26px',
+            color: '#6c8bff'
+        }).setOrigin(0.5).setDepth(300);
+
+        this.add.text(cx, cy, `Pin: ${player2Score}`, {
+            fontSize: '26px',
+            color: '#ff6b6b'
+        }).setOrigin(0.5).setDepth(300);
+
+        // Reactivar input SOLO para UI
+        this.input.enabled = true;
+
+        // ----------------------
+        // BOTONES (DESDE CERO)
+        // ----------------------
+        const btnW = 220;
+        const btnH = 60;
+
+        const createButton = (x, y, text, baseColor, hoverColor, onClick) => {
+
+            // BOTÓN = RECTANGLE INTERACTIVO
+            const btn = this.add.rectangle(x, y, btnW, btnH, baseColor)
+                .setOrigin(0.5)
+                .setDepth(400)
+                .setInteractive({ useHandCursor: true });
+
+            btn.setStrokeStyle(2, 0x0a2740);
+
+            const label = this.add.text(x, y, text, {
+                fontSize: '22px',
+                fontStyle: 'bold',
+                color: '#00131d',
+                fontFamily: 'Arial'
+            }).setOrigin(0.5).setDepth(401);
+
+            // Hover
+            btn.on('pointerover', () => {
+                btn.setFillStyle(hoverColor);
+                label.setColor('#ffffff');
+            });
+
+            btn.on('pointerout', () => {
+                btn.setFillStyle(baseColor);
+                label.setColor('#00131d');
+            });
+
+            // Click
+            btn.on('pointerdown', () => {
+                if (this.sound.get('Boton')) {
+                    this.sound.play('Boton', { volume: 0.5 });
+                }
+
+                this.tweens.add({
+                    targets: btn,
+                    scale: 0.95,
+                    yoyo: true,
+                    duration: 80,
+                    onComplete: onClick
+                });
+            });
+        };
+
+        const btnY = cy + 120;
+
+        createButton(
+            cx - 130,
+            btnY,
+            'Repetir',
+            0x88e1ff,
+            0x4fb0ff,
+            () => this.scene.restart()
+        );
+
+        createButton(
+            cx + 130,
+            btnY,
+            'Menú Principal',
+            0xffdba8,
+            0xffb57a,
+            () => this.scene.start('MenuScene')
+        );
+
+        // Teclado
+        this.input.keyboard.once('keydown-ENTER', () => this.scene.restart());
+        this.input.keyboard.once('keydown-ESC', () => this.scene.start('MenuScene'));
     }
 
     handleDisconnection() {
-        this.gameEnded = true;
-        this.ball.setVelocity(0, 0);
-        this.localPaddle.sprite.setVelocity(0, 0);
-        this.remotePaddle.sprite.setVelocity(0, 0);
-        this.physics.pause();
+        this.isGameOver = true;
+        this.sound.stopAll();
 
-        this.add.text(400, 250, 'Opponent Disconnected', {
+        const cx = this.scale.width / 2;
+        const cy = this.scale.height / 2;
+
+        this.add.text(cx, cy, 'Opponent Disconnected', {
             fontSize: '48px',
             color: '#ff0000'
         }).setOrigin(0.5);
@@ -218,66 +633,268 @@ export class MultiplayerGameScene extends Phaser.Scene {
         });
     }
 
-    createBall() {
-        const graphics = this.add.graphics();
-        graphics.fillStyle(0xffffff);
-        graphics.fillCircle(8, 8, 8);
-        graphics.generateTexture('ball-multi', 16, 16);
-        graphics.destroy();
+    // Powerups
 
-        this.ball = this.physics.add.sprite(400, 300, 'ball-multi');
-        this.ball.setCollideWorldBounds(true);
-        this.ball.setBounce(1);
+    scheduleNextPowerup() {
+        if (this.isGameOver) return;
+        if (this.powerup) return;
+        if (this.powerupMaxStoredP1 <= 0) return;
+        if (this.powerupMaxStoredP2 <= 0) return;
+
+        const delay = Phaser.Math.Between(this.powerupSpawnMin, this.powerupSpawnMax);
+        this.time.delayedCall(delay, () => {
+            if (this.isGameOver) return;
+            // Server will spawn powerup
+            this.sendMessage({ type: 'requestPowerupSpawn' });
+        });
     }
 
-    createBounds() {
-        this.leftGoal = this.physics.add.sprite(0, 300, null);
-        this.leftGoal.setDisplaySize(10, 600);
-        this.leftGoal.body.setSize(10, 600);
-        this.leftGoal.setImmovable(true);
-        this.leftGoal.setVisible(false);
+    spawnPowerupAtHole(holeIndex, powerupType) {
+        if (!this.topoHoles || holeIndex < 0 || holeIndex >= this.topoHoles.length) return;
+        if (this.powerup) return;
 
-        this.rightGoal = this.physics.add.sprite(800, 300, null);
-        this.rightGoal.setDisplaySize(10, 600);
-        this.rightGoal.body.setSize(10, 600);
-        this.rightGoal.setImmovable(true);
-        this.rightGoal.setVisible(false);
+        const pos = this.topoHoles[holeIndex];
+
+        let spriteKey;
+        let scale = 0.45; // escala por defecto para reloj
+        if (powerupType === POWERUP_CLOCK) {
+            spriteKey = 'reloj';
+        } else if (powerupType === POWERUP_THERMOMETER) {
+            spriteKey = 'termometro';
+            scale = 0.30; // escala más grande para termómetro
+        }
+
+        this.powerup = this.add.image(pos.x, pos.y - 10, spriteKey).setScale(scale).setDepth(8);
+        this.currentPowerupType = powerupType;
+        this.powerupHoleIndex = holeIndex;
+        this.powerup.setInteractive({ useHandCursor: true });
+
+        // Evento click en powerup: Jugador 1 (Pin) (LMB) recoge
+        this.powerup.on('pointerdown', (pointer) => {
+            if (this.isGameOver) return;
+            const isLeft = pointer.button === 0 || (pointer.event && pointer.event.button === 0);
+            if (isLeft && this.playerRole === 'player1') {
+                this.sendMessage({ type: 'powerupPickup', playerId: 1 });
+                this.sound.play('Boton');
+            }
+        });
+
+        // flotación sutil
+        this.tweens.add({
+            targets: this.powerup,
+            y: pos.y - 16,
+            duration: 600,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        // expiración del powerup
+        this.time.delayedCall(this.powerupDuration, () => {
+            if (!this.powerup) return;
+            this.powerup.destroy();
+            this.powerup = null;
+            this.powerupHoleIndex = -1;
+            this.scheduleNextPowerup();
+        });
+    }
+
+    pickupPowerupByPlayer(playerId) {
+        if (!this.powerup) return false;
+        if (this.isGameOver) return false;
+
+        // Termómetro solo puede ser recogido por Pom (P2)
+        if (this.currentPowerupType === POWERUP_THERMOMETER && playerId !== 2) return false;
+
+        if (playerId === 1) {
+            if (this.powerupsUsedP1 >= 3) return false;
+            if (this.powerupStoredP1.length >= this.powerupMaxStoredP1) return false;
+            this.powerupStoredP1.push(this.currentPowerupType);
+        } else {
+            if (this.powerupsUsedP2 >= 3) return false;
+            if (this.powerupStoredP2.length >= this.powerupMaxStoredP2) return false;
+            this.powerupStoredP2.push(this.currentPowerupType);
+        }
+
+        // Sonido al recoger powerup
+        if (this.sound.get('Boton')) this.sound.play('Boton');
+
+        // Update UI
+        this.updatePowerupUI();
+
+        // Destroy powerup and schedule next spawn
+        if (this.powerup) {
+            this.powerup.destroy();
+            this.powerup = null;
+            this.powerupHoleIndex = -1;
+        }
+        this.scheduleNextPowerup();
+        return true;
+    }
+
+    usePowerupByPlayer(playerId) {
+        if (this.isGameOver) return false;
+
+        let powerupType;
+        if (playerId === 1) {
+            if (this.powerupStoredP1.length <= 0) return false;
+            powerupType = this.powerupStoredP1.pop();
+            if(this.powerupMaxStoredP1>0)
+                this.powerupMaxStoredP1--
+        } else {
+            if (this.powerupStoredP2.length <= 0) return false;
+            powerupType = this.powerupStoredP2.pop();
+            if(this.powerupMaxStoredP2>0)
+                this.powerupMaxStoredP2--;
+        }
+
+        // Apply effect based on type
+        if (powerupType === POWERUP_CLOCK) {
+            // Aumentar tiempo
+            this.timeLeft += this.powerupAmount;
+            this.timerText.setText(this.formatTime(this.timeLeft));
+        } else if (powerupType === POWERUP_THERMOMETER) {
+            // Activar efecto del termómetro
+            this.thermometerEffectActive = true;
+            this.pinBlocked = true;
+            //detener el tiempo
+            this.gameTimer.paused = true;
+
+            //sonido de frio
+            this.sound.play('Frio');
+
+            // Crear overlay azul claro que cubre toda la pantalla
+            const overlay = this.add.rectangle(
+                this.scale.width / 2,
+                this.scale.height / 2,
+                this.scale.width,
+                this.scale.height,
+                0x87CEEB, // Sky blue / azul claro
+                0.4 // alfa 40% para que se vea de fondo pero transparente
+            ).setDepth(10); // por encima de la mayoría de objetos pero no de UI crítica
+
+            this.thermometerTimer = this.time.addEvent({
+                delay: 1000,
+                repeat: 3, // 4 ticks: 0,1,2,3
+                callback: () => {
+                    this.puntosPlayer2 += 2;
+                    this.updateScoreUI();
+                }
+            });
+            this.time.delayedCall(4000, () => {
+                this.thermometerEffectActive = false;
+                this.pinBlocked = false;
+                this.gameTimer.paused = false;
+                if (this.thermometerTimer) {
+                    this.thermometerTimer.destroy();
+                    this.thermometerTimer = null;
+                }
+                // Eliminar el overlay al terminar
+                if (overlay) {
+                    overlay.destroy();
+                }
+            });
+        }
+
+        // feedback visual y sonoro
+        this.cameras.main.flash(150, 100, 255, 100);
+        if (this.sound.get('Boton')) this.sound.play('Boton');
+
+        // actualizar UI
+        this.updatePowerupUI();
+
+        // incrementar contador de powerups usados
+        if (playerId === 1) {
+            this.powerupsUsedP1++;
+        } else {
+            this.powerupsUsedP2++;
+        }
+
+        return true;
+    }
+
+    // ----------------------
+    // UI update helpers
+    // ----------------------
+    updateScoreUI() {
+        // Consistencia con asignación: P1 = Pom, P2 = Pin
+        if (this.scorePlayer1) this.scorePlayer1.setText(`Pom: ${this.puntosPlayer1}`);
+        if (this.scorePlayer2) this.scorePlayer2.setText(`Pin: ${this.puntosPlayer2}`);
+    }
+
+    updatePowerupUI() {
+        if (this.powerupTextP1) this.powerupTextP1.setText(`P1 Powerups: ${this.powerupStoredP1.length}/${this.powerupMaxStoredP1}`);
+        if (this.powerupTextP2) this.powerupTextP2.setText(`P2 Powerups: ${this.powerupStoredP2.length}/${this.powerupMaxStoredP2}`);
+    }
+
+    // ----------------------
+    // Format time helper
+    // ----------------------
+    formatTime(seconds) {
+        const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+        const s = (seconds % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+    }
+
+    // ----------------------
+    // Update loop
+    // ----------------------
+    update() {
+        if (this.isGameOver) return;
+
+        // Player 2 controls mole movement with keyboard
+        if (this.playerRole === 'player2' && this.topo) {
+            if (this.keys.one.isDown) {
+                this.sendMessage({ type: 'moleMove', holeIndex: 0 });
+            }
+            if (this.keys.two.isDown) {
+                this.sendMessage({ type: 'moleMove', holeIndex: 1 });
+            }
+            if (this.keys.three.isDown) {
+                this.sendMessage({ type: 'moleMove', holeIndex: 2 });
+            }
+            if (this.keys.four.isDown) {
+                this.sendMessage({ type: 'moleMove', holeIndex: 3 });
+            }
+            if (this.keys.five.isDown) {
+                this.sendMessage({ type: 'moleMove', holeIndex: 4 });
+            }
+            if (this.keys.six.isDown) {
+                this.sendMessage({ type: 'moleMove', holeIndex: 5 });
+            }
+        }
+
+        // ESC para pausar
+        if (Phaser.Input.Keyboard.JustDown(this.keys.esc)) {
+            if (!this.isGameOver) {
+                this.scene.launch('PauseScene', { originalScene: 'MultiplayerGameScene' });
+                this.scene.pause();
+            }
+        }
+
+        // SPACE para usar powerup P2
+        if (Phaser.Input.Keyboard.JustDown(this.keys.space) && this.playerRole === 'player2') {
+            this.sendMessage({ type: 'powerupUse', playerId: 2 });
+        }
+    }
+
+    // ----------------------
+    // Resume handler
+    // ----------------------
+    onResume() {
+        if (this.game && this.game.canvas && this.game.canvas.style) {
+            this.game.canvas.style.cursor = 'none';
+        }
+        // reactivar input pointer
+        if (this.playerRole === 'player1') {
+            this.input.on('pointerdown', (pointer) => this.handlePointerDown(pointer));
+        }
     }
 
     sendMessage(message) {
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
             this.ws.send(JSON.stringify(message));
         }
-    }
-
-    update() {
-        if (this.gameEnded) return;
-
-        // Handle local paddle input - both players use arrow keys
-        let direction = null;
-        if (this.cursors.up.isDown) {
-            direction = 'up';
-        } else if (this.cursors.down.isDown) {
-            direction = 'down';
-        } else {
-            direction = 'stop';
-        }
-
-        // Move local paddle
-        const speed = 300;
-        if (direction === 'up') {
-            this.localPaddle.sprite.setVelocityY(-speed);
-        } else if (direction === 'down') {
-            this.localPaddle.sprite.setVelocityY(speed);
-        } else {
-            this.localPaddle.sprite.setVelocityY(0);
-        }
-
-        // Send paddle position to server
-        this.sendMessage({
-            type: 'paddleMove',
-            y: this.localPaddle.sprite.y
-        });
     }
 
     shutdown() {
