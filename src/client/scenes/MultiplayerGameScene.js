@@ -22,7 +22,7 @@ export class MultiplayerGameScene extends Phaser.Scene {
         this.roomId = data.roomId;
 
         // Game state
-        this.timeLeft = 60;
+        this.timeLeft = 10;
         this.isGameOver = false;
 
         // Scores
@@ -876,6 +876,161 @@ export class MultiplayerGameScene extends Phaser.Scene {
         if (Phaser.Input.Keyboard.JustDown(this.keys.space) && this.playerRole === 'player2') {
             this.sendMessage({ type: 'powerupUse', playerId: 2 });
         }
+    }
+
+    endRound() {
+        this.isGameOver = true;
+        this.sound.stopAll();
+
+        if (this.game?.canvas?.style) {
+            this.game.canvas.style.cursor = 'auto';
+        }
+
+        // Desactivar input del juego
+        this.input.enabled = false;
+
+        if (this.martillo?.setVisible) this.martillo.setVisible(false);
+        if (this.topoTimer) this.topoTimer.remove(false);
+        if (this.gameTimer) this.gameTimer.remove(false);
+
+        if (this.topo?.sprite) {
+            this.topo.sprite.disableInteractive();
+            this.topo.hide();
+        }
+
+        const cx = this.scale.width / 2;
+        const cy = this.scale.height / 2;
+
+        // ----------------------
+        // Overlay
+        // ----------------------
+        this.add.rectangle(
+            cx,
+            cy,
+            this.scale.width,
+            this.scale.height,
+            0x000000,
+            0.6
+        ).setDepth(100);
+
+        // ----------------------
+        // Panel
+        // ----------------------
+        const panel = this.add.rectangle(cx, cy, 700, 380, 0x0b1220, 0.95)
+            .setStrokeStyle(4, 0x1f6feb)
+            .setDepth(200)
+            .setScale(0.8);
+
+        this.tweens.add({
+            targets: panel,
+            scale: 1,
+            duration: 300,
+            ease: 'Back.Out'
+        });
+
+        // ----------------------
+        // Texto ganador
+        // ----------------------
+        let winnerText = 'Empate 🤝';
+        let color = '#ffffff';
+
+        if (this.puntosPlayer1 > this.puntosPlayer2) {
+            winnerText = '🏆 Gana Jugador 1 (Pom)';
+            color = '#6c8bff';
+        } else if (this.puntosPlayer2 > this.puntosPlayer1) {
+            winnerText = '🏆 Gana Jugador 2 (Pin)';
+            color = '#ff6b6b';
+        }
+
+        this.add.text(cx, cy - 120, winnerText, {
+            fontSize: '38px',
+            fontStyle: 'bold',
+            color,
+            fontFamily: 'Arial'
+        }).setOrigin(0.5).setDepth(300);
+
+        this.add.text(cx, cy - 40, `P1 (Pom): ${this.puntosPlayer1}`, {
+            fontSize: '26px',
+            color: '#6c8bff'
+        }).setOrigin(0.5).setDepth(300);
+
+        this.add.text(cx, cy, `P2 (Pin): ${this.puntosPlayer2}`, {
+            fontSize: '26px',
+            color: '#ff6b6b'
+        }).setOrigin(0.5).setDepth(300);
+
+        // Reactivar input SOLO para UI
+        this.input.enabled = true;
+
+        // ----------------------
+        // BOTONES
+        // ----------------------
+        const btnW = 220;
+        const btnH = 60;
+
+        const createButton = (x, y, text, baseColor, hoverColor, onClick) => {
+            const btn = this.add.rectangle(x, y, btnW, btnH, baseColor)
+                .setOrigin(0.5)
+                .setDepth(400)
+                .setInteractive({ useHandCursor: true });
+
+            btn.setStrokeStyle(2, 0x0a2740);
+
+            const label = this.add.text(x, y, text, {
+                fontSize: '22px',
+                fontStyle: 'bold',
+                color: '#00131d',
+                fontFamily: 'Arial'
+            }).setOrigin(0.5).setDepth(401);
+
+            btn.on('pointerover', () => {
+                btn.setFillStyle(hoverColor);
+                label.setColor('#ffffff');
+            });
+
+            btn.on('pointerout', () => {
+                btn.setFillStyle(baseColor);
+                label.setColor('#00131d');
+            });
+
+            btn.on('pointerdown', () => {
+                if (this.sound.get('Boton')) {
+                    this.sound.play('Boton', { volume: 0.5 });
+                }
+
+                this.tweens.add({
+                    targets: btn,
+                    scale: 0.95,
+                    yoyo: true,
+                    duration: 80,
+                    onComplete: onClick
+                });
+            });
+        };
+
+        const btnY = cy + 120;
+
+        createButton(
+            cx - 130,
+            btnY,
+            'Volver al Lobby',
+            0x88e1ff,
+            0x4fb0ff,
+            () => this.scene.start('LobbyScene')
+        );
+
+        createButton(
+            cx + 130,
+            btnY,
+            'Menú Principal',
+            0xffdba8,
+            0xffb57a,
+            () => this.scene.start('MenuScene')
+        );
+
+        // Teclado
+        this.input.keyboard.once('keydown-ENTER', () => this.scene.start('LobbyScene'));
+        this.input.keyboard.once('keydown-ESC', () => this.scene.start('MenuScene'));
     }
 
     // ----------------------

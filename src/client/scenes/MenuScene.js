@@ -87,7 +87,7 @@ export class MenuScene extends Phaser.Scene {
 
         });
 
-         const leaderboardsBtn = this.add.text(500, 520, 'Leaderboards', {
+         const leaderboardsBtn = this.add.text(500, 520, 'Clasificación', {
             fontSize: '30px',
             fontStyle: 'bold',
             fontFamily: 'roboto',

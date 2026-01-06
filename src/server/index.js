@@ -77,7 +77,8 @@ app.use((req, res, next) => {
 });
 
 // Servir archivos estáticos del juego (dist/)
-app.use(express.static(path.join(__dirname, '../../dist')));
+//app.use(express.static(path.join(__dirname, '../../dist')));
+app.use('/assets', express.static(path.join(__dirname, '../../dist/assets')));
 
 // ==================== RUTAS ====================
 
@@ -175,6 +176,10 @@ wss.on('connection', (ws) => {
 
         case 'leaveQueue':
           matchmakingService.leaveQueue(ws);
+          break;
+
+        case 'hammerMove':
+          gameRoomService.handleHammerMove(ws, data.x, data.y, data.angle);
           break;
 
         case 'moleMove':
