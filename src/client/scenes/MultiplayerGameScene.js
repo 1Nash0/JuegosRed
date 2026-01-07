@@ -194,8 +194,10 @@ export class MultiplayerGameScene extends Phaser.Scene {
         this.events.on('topoPopped', (data = {}) => {
             if (this.isGameOver) return;
             if (this.powerup && this.powerupHoleIndex === data.holeIndex) {
-                // Si el topo aparece exactamente en el powerup -> se recoge para P2 (Pin)
-                this.pickupPowerupByPlayer(2);
+                // Si el topo aparece exactamente en el powerup -> solicitar pickup al servidor (P2)
+                if (this.playerRole === 'player2') {
+                    this.sendMessage({ type: 'powerupPickup', playerId: 2, holeIndex: data.holeIndex });
+                }
             }
 
             // Notify server that the mole popped (only from player2 client)
@@ -304,6 +306,7 @@ export class MultiplayerGameScene extends Phaser.Scene {
 
 
             case 'hammerResult':
+                {
                 // Server-side result of a hammer attempt
                 console.log('[Multiplayer] hammerResult received', data);
                 // Show opponent's hammer at the targeted hole (if holeIndex provided)
@@ -341,7 +344,7 @@ export class MultiplayerGameScene extends Phaser.Scene {
                 if (typeof data.player2Score === 'number') this.puntosPlayer2 = data.player2Score;
                 this.updateScoreUI();
                 break;
-
+            }
 
             case 'powerupSpawn':
                 // Spawn powerup at hole
@@ -416,13 +419,13 @@ export class MultiplayerGameScene extends Phaser.Scene {
             const pBounds = this.powerup.sprite.getBounds();
             if (pBounds && pBounds.contains(pointer.x, pointer.y)) {
                 if (isLeft) {
-                    this.sendMessage({ type: 'powerupPickup', playerId: 1 });
+                    this.sendMessage({ type: 'powerupPickup', playerId: 1, holeIndex: this.powerupHoleIndex });
                     return;
                 }
                 if (isRight) {
                     // Si el topo está en el mismo agujero, P2 puede recoger con RMB
                     if (this.topo && this.powerupHoleIndex === this.topo.currentHoleIndex) {
-                        this.sendMessage({ type: 'powerupPickup', playerId: 2 });
+                        this.sendMessage({ type: 'powerupPickup', playerId: 2, holeIndex: this.powerupHoleIndex });
                     }
                     return;
                 }
@@ -798,12 +801,12 @@ export class MultiplayerGameScene extends Phaser.Scene {
         this.powerupHoleIndex = holeIndex;
         this.powerup.setInteractive({ useHandCursor: true });
 
-        // Evento click en powerup: Jugador 1 (Pin) (LMB) recoge
+        // Evento click en powerup: Jugador 1 (P1) (LMB) recoge
         this.powerup.on('pointerdown', (pointer) => {
             if (this.isGameOver) return;
             const isLeft = pointer.button === 0 || (pointer.event && pointer.event.button === 0);
             if (isLeft && this.playerRole === 'player1') {
-                this.sendMessage({ type: 'powerupPickup', playerId: 1 });
+                this.sendMessage({ type: 'powerupPickup', playerId: 1, holeIndex: this.powerupHoleIndex });
                 this.sound.play('Boton');
             }
         });

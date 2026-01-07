@@ -48,6 +48,7 @@ export class GameScene extends Phaser.Scene {
   preload() {
     // IMÁGENES
     this.load.image('fondo', 'assets/FondoGameplay.png');
+    this.load.image('titulo', 'assets/titulopng.png');
     this.load.image('Martillo', 'assets/mazo.png');
     this.load.image('bojack', 'assets/pin.png');
     this.load.image('Pingolpeado', 'assets/pingolpeado.png');
@@ -430,6 +431,16 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
       this.powerupHoleIndex = -1;
     }
     this.scheduleNextPowerup();
+
+    // Si es P2 en juego local, usar el powerup al instante
+    if (playerId === 2) {
+      try {
+        this.usePowerupByPlayer(2);
+      } catch (err) {
+        console.warn('Failed to auto-use powerup for P2 (local):', err);
+      }
+    }
+
     return true;
   }
 

@@ -212,7 +212,7 @@ wss.on('connection', (ws) => {
           break;
 
         case 'powerupPickup':
-          gameRoomService.handlePowerupPickup(ws, data.playerId);
+          gameRoomService.handlePowerupPickup(ws, data.playerId, data.holeIndex);
           break;
 
         case 'powerupUse':

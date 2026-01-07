@@ -54,5 +54,46 @@ import { createGameRoomService } from '../src/server/services/gameRoomService.js
   assert.strictEqual(lastMsg.hit, false, 'hammerResult should indicate miss');
   assert.strictEqual(lastMsg.player2Score, 1, 'player2 should receive a point on miss');
 
-  console.log('hammer flow test passed');
+  // Now test that when mole hides (not hit), Pin receives a point
+  // get previous p2 score (from latest scoreUpdate if present)
+  let lastScoreUpdate = ws2._sent.map(s => JSON.parse(s)).reverse().find(m => m.type === 'scoreUpdate');
+  const prevP2 = lastScoreUpdate ? lastScoreUpdate.player2Score : 0;
+
+  // Simulate a mole popup and hide without being hit
+  gameRoomService.handleMolePop(ws2, 5);
+  gameRoomService.handleMoleHide(ws2, 5, false);
+
+  // Expect a scoreUpdate increasing player2 score by 1
+  const newScoreUpdate = ws2._sent.map(s => JSON.parse(s)).reverse().find(m => m.type === 'scoreUpdate');
+  assert.strictEqual(newScoreUpdate.player2Score, prevP2 + 1, 'player2 should gain a point when mole hides unhit');
+
+  console.log('mole hide scoring test passed');
+
+  // --- NEW: powerup pickup/use flow (P2) ---
+  // Force spawn a thermometer at hole 3
+  const ok = gameRoomService.debugSetPowerup(roomId, 'thermometer', 3);
+  assert(ok, 'debugSetPowerup should succeed');
+
+  // Both clients should have received a powerupSpawn
+  const spawnP2 = ws2._sent.map(s => JSON.parse(s)).reverse().find(m => m.type === 'powerupSpawn');
+  assert(spawnP2, 'player2 should receive powerupSpawn');
+  assert.strictEqual(spawnP2.holeIndex, 3, 'powerup should be at hole 3');
+
+  // Simulate P2 popping at hole 3 and requesting pickup (client would send this)
+  gameRoomService.handleMolePop(ws2, 3);
+  gameRoomService.handlePowerupPickup(ws2, 2, 3);
+
+  // Both players should receive a powerupPickup notification
+  const pickupMsg = ws1._sent.map(s => JSON.parse(s)).reverse().find(m => m.type === 'powerupPickup');
+  assert(pickupMsg, 'powerupPickup should be broadcast');
+
+  // Server should auto-use P2's powerup -> expect powerupUse broadcast without calling handlePowerupUse manually
+  const useMsg = ws1._sent.map(s => JSON.parse(s)).reverse().find(m => m.type === 'powerupUse');
+  assert(useMsg, 'powerupUse should be broadcast automatically for P2');
+
+  // And room state should reflect thermometer active / pin blocked (effect applied)
+  const room = gameRoomService.debugGetRoom(roomId);
+  assert(room.thermometerActive === true || room.pinBlocked === true, 'thermometer effect should be active after auto-use');
+
+  console.log('powerup flow test passed');
 })();

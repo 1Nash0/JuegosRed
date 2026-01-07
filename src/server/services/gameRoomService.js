@@ -43,6 +43,7 @@ export function createGameRoomService(userService = null) {
       timeLeft: 60,
       moleActive: false,
       moleHoleIndex: 0,
+      moleWasHit: false, // <- nuevo: track si el mole fue golpeado durante esta aparición
       powerup: null,
       powerupHoleIndex: -1,
       thermometerActive: false,
@@ -150,17 +151,50 @@ export function createGameRoomService(userService = null) {
   function handleMoleHide(ws, holeIndex, wasHit) {
     const roomId = ws.roomId;
     if (!roomId) return;
+
     const room = rooms.get(roomId);
     if (!room || !room.active) return;
     if (room.player2.ws !== ws) return;
 
+    // Evitar doble conteo si hubo un golpe (autoritativo) muy recientemente
+    const now = Date.now();
+    if (room.lastHitAt && (now - room.lastHitAt) < 500) {
+      console.log(`[GameRoomService] moleHide ignored due recent hammer for room=${roomId}`);
+      // limpiar estado y timers
+      room.moleActive = false;
+      room.moleWasHit = false;
+      if (room._moleActiveTimer) {
+        clearTimeout(room._moleActiveTimer);
+        room._moleActiveTimer = null;
+      }
+      return;
+    }
+
+    const wasHitFlag = !!wasHit;
+    console.log(`[GameRoomService] moleHide room=${roomId} holeIndex=${holeIndex} wasHit=${wasHitFlag} pinBlocked=${room.pinBlocked}`);
+
+    // Siempre sumar 1 punto a Pin cuando el topo se esconde (salvo el caso de debounce anterior)
+    room.player2.score += 1;
+    // registrar tiempo de resolución para evitar dobles conteos posteriores
+    room.lastHitAt = Date.now();
+
+    // Broadcast score update
+    const scoreUpdate = {
+      type: 'scoreUpdate',
+      player1Score: room.player1.score,
+      player2Score: room.player2.score
+    };
+
+    try { room.player1.ws.send(JSON.stringify(scoreUpdate)); } catch (e) { /* ignore */ }
+    try { room.player2.ws.send(JSON.stringify(scoreUpdate)); } catch (e) { /* ignore */ }
+
+    // Reset estado del topo
     room.moleActive = false;
+    room.moleWasHit = false;
     if (room._moleActiveTimer) {
       clearTimeout(room._moleActiveTimer);
       room._moleActiveTimer = null;
     }
-
-    console.log(`[GameRoomService] moleHide room=${roomId} holeIndex=${holeIndex} wasHit=${!!wasHit}`);
   }
 
   /**
@@ -268,7 +302,7 @@ export function createGameRoomService(userService = null) {
    * @param {WebSocket} ws - Player's WebSocket
    * @param {number} playerId - Player ID (1 or 2)
    */
-  function handlePowerupPickup(ws, playerId) {
+  function handlePowerupPickup(ws, playerId, holeIndex = undefined) {
     const roomId = ws.roomId;
     if (!roomId) return;
 
@@ -278,6 +312,9 @@ export function createGameRoomService(userService = null) {
     // Validate player
     const player = playerId === 1 ? room.player1 : room.player2;
     if (player.ws !== ws) return;
+
+    // If holeIndex provided, ensure it matches current powerup
+    if (typeof holeIndex === 'number' && holeIndex !== room.powerupHoleIndex) return;
 
     // Termómetro solo puede ser recogido por P2
     if (room.powerup === POWERUP_THERMOMETER && playerId !== 2) return;
@@ -289,7 +326,7 @@ export function createGameRoomService(userService = null) {
     // Add powerup
     player.powerupsStored.push(room.powerup);
 
-    // Clear powerup
+    // Clear powerup on the room
     room.powerup = null;
     room.powerupHoleIndex = -1;
 
@@ -299,8 +336,18 @@ export function createGameRoomService(userService = null) {
       playerId
     };
 
-    room.player1.ws.send(JSON.stringify(pickupMsg));
-    room.player2.ws.send(JSON.stringify(pickupMsg));
+    try { room.player1.ws.send(JSON.stringify(pickupMsg)); } catch (e) { /* ignore */ }
+    try { room.player2.ws.send(JSON.stringify(pickupMsg)); } catch (e) { /* ignore */ }
+
+    // Si lo recoge P2, usarlo inmediatamente (topo usa al instante)
+    if (playerId === 2) {
+      try {
+        // use the powerup we just stored (handlePowerupUse will pop it)
+        handlePowerupUse(player.ws, 2);
+      } catch (err) {
+        console.error('[GameRoomService] Error auto-using powerup for P2:', err);
+      }
+    }
   }
 
   /**
@@ -495,6 +542,7 @@ export function createGameRoomService(userService = null) {
         }
       }
 
+      
       // Persist current scores
       persistResults(room);
     }
@@ -506,6 +554,8 @@ export function createGameRoomService(userService = null) {
     room.active = false;
     rooms.delete(roomId);
   }
+
+  
 
   /**
    * Handle hammer hit result from player 2
@@ -525,10 +575,34 @@ export function createGameRoomService(userService = null) {
 
     console.log(`[GameRoomService] handleHammerHitResult room=${roomId} hit=${hit} miss=${miss}`);
 
+    // Ignore if an authoritative hammer event was processed very recently to avoid double-counting
+    const now = Date.now();
+    if (room.lastHitAt && (now - room.lastHitAt) < 500) {
+      console.log(`[GameRoomService] handleHammerHitResult ignored due recent hammer for room=${roomId}`);
+      return;
+    }
+
     if (hit) {
       room.player1.score += 1;
+      room.moleWasHit = true; // <- marcar que el topo fue golpeado
     } else if (miss) {
-      room.player2.score += 1;
+      // Only award point to Pin (player2) if not blocked
+      if (!room.pinBlocked) {
+        room.player2.score += 1;
+      } else {
+        console.log(`[GameRoomService] miss received but Pin is blocked for room=${roomId} -> no point awarded`);
+      }
+      room.moleWasHit = false;
+    }
+
+    // record time to avoid immediate double-counting with a subsequent moleMiss event
+    room.lastHitAt = Date.now();
+
+    // Ensure mole state is cleared (so moleMiss doesn't double-count)
+    room.moleActive = false;
+    if (room._moleActiveTimer) {
+      clearTimeout(room._moleActiveTimer);
+      room._moleActiveTimer = null;
     }
 
     // Broadcast hammer result + updated scores so both clients can show feedback
@@ -557,6 +631,8 @@ export function createGameRoomService(userService = null) {
    * @param {number} y
    */
   function handleHammerHit(ws, holeIndex, x, y) {
+    // Defensive checks
+    if (!ws || typeof ws !== 'object') return;
     const roomId = ws.roomId;
     if (!roomId) return;
 
@@ -566,10 +642,15 @@ export function createGameRoomService(userService = null) {
     // Only player1 (Pom) sends hammer hit attempts
     if (room.player1.ws !== ws) return;
 
-    // Normalize params
-    const idx = (typeof holeIndex === 'number') ? holeIndex : -1;
-    const px = (typeof x === 'number') ? x : 0;
-    const py = (typeof y === 'number') ? y : 0;
+    // Normalize params: holeIndex should be an integer 0..5
+    let idx = -1;
+    if (typeof holeIndex === 'number' && Number.isFinite(holeIndex)) {
+      idx = Math.floor(holeIndex);
+      if (idx < 0 || idx > 5) idx = -1;
+    }
+
+    const px = (typeof x === 'number' && Number.isFinite(x)) ? x : 0;
+    const py = (typeof y === 'number' && Number.isFinite(y)) ? y : 0;
 
     debug(`[GameRoomService] handleHammerHit room=${roomId} idx=${idx} moleIndex=${room.moleHoleIndex} moleActive=${room.moleActive} pinBlocked=${room.pinBlocked}`);
     debug(`[GameRoomService] scores before -> p1=${room.player1.score} p2=${room.player2.score}`);
@@ -582,10 +663,12 @@ export function createGameRoomService(userService = null) {
     if (!room.pinBlocked && idx >= 0 && idx === room.moleHoleIndex && room.moleActive) {
       hit = true;
       room.player1.score += 1;
+      room.moleWasHit = true; // <- marcar que el topo fue golpeado
       debug('[GameRoomService] hammer detected as HIT');
     } else {
       // a miss by the hammer gives a point to the mole (unless blocked)
       miss = true;
+      room.moleWasHit = false;
       if (!room.pinBlocked) {
         room.player2.score += 1;
         debug('[GameRoomService] hammer detected as MISS -> point to Pin');
@@ -672,6 +755,22 @@ export function createGameRoomService(userService = null) {
     return Array.from(rooms.values()).filter(room => room.active).length;
   }
 
+  // Debug helpers (exposed for tests)
+  function debugSetPowerup(roomId, powerupType, holeIndex) {
+    const room = rooms.get(roomId);
+    if (!room) return false;
+    room.powerup = powerupType;
+    room.powerupHoleIndex = holeIndex;
+    const spawnMsg = { type: 'powerupSpawn', holeIndex, powerupType };
+    try { room.player1.ws.send(JSON.stringify(spawnMsg)); } catch (e) {}
+    try { room.player2.ws.send(JSON.stringify(spawnMsg)); } catch (e) {}
+    return true;
+  }
+
+  function debugGetRoom(roomId) {
+    return rooms.get(roomId) || null;
+  }
+
   return {
     createRoom,
     handleMoleMove,
@@ -687,6 +786,9 @@ export function createGameRoomService(userService = null) {
     handleDisconnect,
     handlePause,
     handleResume,
-    getActiveRoomCount
+    getActiveRoomCount,
+    // debug helpers
+    debugSetPowerup,
+    debugGetRoom
   };
 }
