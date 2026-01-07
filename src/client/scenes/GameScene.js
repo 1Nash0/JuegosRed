@@ -336,8 +336,10 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
   scheduleNextPowerup() {
     if (this.isGameOver) return;
     if (this.powerup) return;
-    if (this.powerupMaxStoredP1 <= 0) return;
-    if (this.powerupMaxStoredP2 <= 0) return;
+    // Spawn only if at least one player can store another powerup
+    const p1CanStore = this.powerupStoredP1.length < this.powerupMaxStoredP1;
+    const p2CanStore = this.powerupStoredP2.length < this.powerupMaxStoredP2;
+    if (!p1CanStore && !p2CanStore) return;
 
     const delay = Phaser.Math.Between(this.powerupSpawnMin, this.powerupSpawnMax);
     this.time.delayedCall(delay, () => {
@@ -451,13 +453,9 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
     if (playerId === 1) {
       if (this.powerupStoredP1.length <= 0) return false;
       powerupType = this.powerupStoredP1.pop();
-      if(this.powerupMaxStoredP1>0)
-        this.powerupMaxStoredP1--
     } else {
       if (this.powerupStoredP2.length <= 0) return false;
       powerupType = this.powerupStoredP2.pop();
-      if(this.powerupMaxStoredP2>0)
-        this.powerupMaxStoredP2--;
     }
 
     // Apply effect based on type
