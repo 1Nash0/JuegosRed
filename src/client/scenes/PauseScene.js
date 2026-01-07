@@ -52,6 +52,18 @@ export class PauseScene extends Phaser.Scene {
         menuBtn.setDepth(1003);
         settingsBtn.setDepth(1003);
         resumeBtn.on('pointerdown', () => {
+            // If coming from multiplayer, notify server so the opponent can resume as well
+            if (data.originalScene === 'MultiplayerGameScene') {
+                try {
+                    const ms = this.scene.get('MultiplayerGameScene');
+                    if (ms && typeof ms.sendMessage === 'function') {
+                        ms.sendMessage({ type: 'resume' });
+                    }
+                } catch (err) {
+                    console.warn('Failed to send resume to server:', err);
+                }
+            }
+
             if (this.game && this.game.canvas && this.game.canvas.style) {
                 this.game.canvas.style.cursor = this._prevCursor || 'auto';
             }

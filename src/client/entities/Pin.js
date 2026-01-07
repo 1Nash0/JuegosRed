@@ -120,17 +120,17 @@ export class Pin {
         // Desactivar interacción cuando está oculto
         this.sprite.disableInteractive();
         
-        // Si no fue golpeado, emitir evento de "miss" (el jugador 2 gana punto)
-        if (!this._wasHit) {
-            try {
-                this.scene.events.emit('topoMissed', {
-                    id: this.id,
-                    holeIndex: this.currentHoleIndex
-                });
-            } catch (e) {
-                console.warn('Emit topoMissed failed', e);
-            }
+        // Emitir evento genérico de ocultado para que la escena y servidor puedan sincronizar
+        try {
+            this.scene.events.emit('topoHidden', {
+                id: this.id,
+                holeIndex: this.currentHoleIndex,
+                wasHit: !!this._wasHit
+            });
+        } catch (e) {
+            console.warn('Emit topoHidden failed', e);
         }
+
     }
 
     // Cuando se golpea al topo - retorna true si fue golpeado

@@ -186,6 +186,14 @@ wss.on('connection', (ws) => {
           gameRoomService.handleMoleMove(ws, data.holeIndex);
           break;
 
+        case 'molePop':
+          gameRoomService.handleMolePop(ws, data.holeIndex);
+          break;
+
+        case 'moleHide':
+          gameRoomService.handleMoleHide(ws, data.holeIndex, data.wasHit);
+          break;
+
         case 'hammerHit':
           // Expecting holeIndex (preferred) and optional x/y for telemetry
           gameRoomService.handleHammerHit(ws, data.holeIndex, data.x, data.y);
@@ -214,6 +222,11 @@ wss.on('connection', (ws) => {
         case 'pause':
           // Relay pause to opponent
           gameRoomService.handlePause(ws);
+          break;
+
+        case 'resume':
+          // Relay resume to opponent
+          gameRoomService.handleResume(ws);
           break;
 
         default:

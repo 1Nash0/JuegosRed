@@ -197,6 +197,29 @@ export class MultiplayerGameScene extends Phaser.Scene {
                 // Si el topo aparece exactamente en el powerup -> se recoge para P2 (Pin)
                 this.pickupPowerupByPlayer(2);
             }
+
+            // Notify server that the mole popped (only from player2 client)
+            if (this.playerRole === 'player2') {
+                try {
+                    this.sendMessage({ type: 'molePop', holeIndex: data.holeIndex });
+                } catch (err) {
+                    console.warn('Failed to send molePop:', err);
+                }
+            }
+        });
+
+        // Evento topo Hidden (siempre que se oculte)
+        this.events.off('topoHidden');
+        this.events.on('topoHidden', (data = {}) => {
+            if (this.isGameOver) return;
+            // Notify server that the mole hid (useful to clear server-side moleActive)
+            if (this.playerRole === 'player2') {
+                try {
+                    this.sendMessage({ type: 'moleHide', holeIndex: data.holeIndex, wasHit: !!data.wasHit });
+                } catch (err) {
+                    console.warn('Failed to send moleHide:', err);
+                }
+            }
         });
 
         // Evento topo missed: cuando el topo desaparece sin ser golpeado, punto para P2
@@ -208,11 +231,6 @@ export class MultiplayerGameScene extends Phaser.Scene {
                 this.sendMessage({ type: 'moleMiss' });
             }
         });
-
-        // Input pointer: manejador único - only for Player 1
-        if (this.playerRole === 'player1') {
-            this.input.on('pointerdown', (pointer) => this.handlePointerDown(pointer));
-        }
 
         // Timer cuenta atrás
         // this.gameTimer = this.time.addEvent({
@@ -275,21 +293,15 @@ export class MultiplayerGameScene extends Phaser.Scene {
 
             case 'hammerMove':
                 // Update hammer position on the client that does NOT control it
-                // Update hammer position on the client that does NOT control it
                 if (this.martillo) {
                     // ensure visible
                     this.martillo.setVisible(true);
-                    if (typeof this.martillo.setPosition === 'function') {
-                        this.martillo.setPosition(data.x, data.y);
-                    } else {
-                        this.martillo.x = data.x;
-                        this.martillo.y = data.y;
-                    }
-                    // angle helper
-                    if (typeof this.martillo.setAngle === 'function') this.martillo.setAngle(data.angle || 0);
-                    else this.martillo.angle = data.angle || 0;
+                    // Store target for smooth interpolation in update()
+                    this._remoteHammerTarget = { x: data.x, y: data.y, angle: data.angle || 0, ts: Date.now() };
                 }
                 break;
+
+
 
             case 'hammerResult':
                 // Server-side result of a hammer attempt
@@ -299,14 +311,18 @@ export class MultiplayerGameScene extends Phaser.Scene {
                 if (idx >= 0 && this.topoHoles && this.topoHoles[idx]) {
                     const pos = this.topoHoles[idx];
                     if (this.martillo) {
-                        this.martillo.setVisible(true);
-                        // place the hammer slightly above the hole so it looks natural
-                        if (typeof this.martillo.setPosition === 'function') this.martillo.setPosition(pos.x, pos.y - 20);
-                        else { this.martillo.x = pos.x; this.martillo.y = pos.y - 20; }
-                        // play the hit animation if available
-                        if (typeof this.martillo.hit === 'function') this.martillo.hit();
-                        // hide after short delay
-                        this.time.delayedCall(500, () => { try { if (this.martillo && this.martillo.setVisible) this.martillo.setVisible(false); } catch (e) {} });
+                        const isLocalHammer = (this.playerRole === 'player1');
+                        if (!isLocalHammer) {
+                            // show opponent hammer briefly at the hit location
+                            this.martillo.setVisible(true);
+                            if (typeof this.martillo.setPosition === 'function') this.martillo.setPosition(pos.x, pos.y - 20);
+                            else { this.martillo.x = pos.x; this.martillo.y = pos.y - 20; }
+                            if (typeof this.martillo.hit === 'function') this.martillo.hit();
+                            this.time.delayedCall(500, () => { try { if (this.martillo && this.martillo.setVisible) this.martillo.setVisible(false); } catch (e) {} });
+                        } else {
+                            // Local hammer: just play hit animation but keep it visible/following
+                            if (typeof this.martillo.hit === 'function') this.martillo.hit();
+                        }
                     }
                 }
 
@@ -368,8 +384,16 @@ export class MultiplayerGameScene extends Phaser.Scene {
                 if (!this.isGameOver) {
                     this.scene.launch('PauseScene', { originalScene: 'MultiplayerGameScene' });
                     try { this.scene.bringToTop('PauseScene'); } catch (e) {}
-                    // Pause current scene explicitly
-                    try { this.scene.pause(); } catch (e) {}
+                    // Pause the multiplayer scene explicitly so timers stop (pause the correct scene)
+                    try { this.scene.pause('MultiplayerGameScene'); } catch (e) {}
+                }
+                break;
+
+            case 'resume':
+                if (!this.isGameOver) {
+                    // If another player resumed, close PauseScene if open and resume gameplay
+                    try { if (this.scene.isActive('PauseScene')) this.scene.stop('PauseScene'); } catch (e) {}
+                    try { this.scene.resume('MultiplayerGameScene'); } catch (e) {}
                 }
                 break;
 
@@ -453,7 +477,8 @@ export class MultiplayerGameScene extends Phaser.Scene {
     }
 
     handleHammerHit(x, y) {
-        // Determine if it was a hit (this logic runs on player 2's client)
+        // Legacy client-side helper: compute local result for immediate feedback only
+        // Server is authoritative and will broadcast the final 'hammerResult'.
         let hit = false;
         let miss = false;
 
@@ -472,17 +497,9 @@ export class MultiplayerGameScene extends Phaser.Scene {
             miss = true;
         }
 
-        // Send result to server
-        console.log('[Multiplayer] sending hammerHitResult', { hit, miss });
-        this.sendMessage({
-            type: 'hammerHitResult',
-            hit,
-            miss
-        });
-
-        // Update local state for immediate feedback (will be overridden by server)
+        // Provide immediate local feedback (no longer sending authoritative result to server)
         if (hit) {
-            this.topo.hide();
+            // visual feedback only - do NOT call this.topo.hide() (server will instruct hide via hammerResult)
             this.sound.play('Golpe');
             this.sound.play('Castor');
             this.cameras.main.shake(200, 0.01);
@@ -517,18 +534,22 @@ export class MultiplayerGameScene extends Phaser.Scene {
                     this.martillo.hit();
                 }
 
-                // Marcar el topo como golpeado y procesar el golpe locally (visual feedback)
-                if (typeof this.topo.hit === 'function') {
-                    this.topo.hit();
-                } else {
-                    this.topo.hide();
-                }
-
-                // Sonidos y efecto
+                // Sonidos y efecto (feedback instantáneo)
                 this.sound.play('Golpe');
                 this.sound.play('Castor');
-
                 this.cameras.main.shake(200, 0.01);
+
+                // Enviar intento de golpe al servidor para que el flujo de puntuación ocurra (server autoritativo)
+                try {
+                    this.sendMessage({
+                        type: 'hammerHit',
+                        holeIndex: this.topo.currentHoleIndex,
+                        x: (pointer.worldX !== undefined) ? pointer.worldX : pointer.x,
+                        y: (pointer.worldY !== undefined) ? pointer.worldY : pointer.y
+                    });
+                } catch (err) {
+                    console.warn('Failed to send hammerHit from topo pointer:', err);
+                }
             }
         });
 
@@ -969,6 +990,22 @@ export class MultiplayerGameScene extends Phaser.Scene {
         }
     }
 
+    // Smooth remote hammer movement (interpolate towards latest target)
+    if (this.playerRole !== 'player1' && this.martillo && this._remoteHammerTarget) {
+        const t = 0.2; // interpolation factor (0..1)
+        this.martillo.x += (this._remoteHammerTarget.x - this.martillo.x) * t;
+        this.martillo.y += (this._remoteHammerTarget.y - this.martillo.y) * t;
+        // smooth rotation if available
+        const targetAngle = this._remoteHammerTarget.angle || 0;
+        if (typeof this.martillo.setAngle === 'function') {
+            const current = this.martillo.angle || 0;
+            const na = current + (targetAngle - current) * 0.25;
+            try { this.martillo.setAngle(na); } catch (e) { this.martillo.angle = na; }
+        } else {
+            this.martillo.angle = (this.martillo.angle || 0) + (targetAngle - (this.martillo.angle || 0)) * 0.25;
+        }
+    }
+
         // Player 2 controls mole movement with keyboard
         if (this.playerRole === 'player2' && this.topo) {
             if (this.keys.one.isDown) {
@@ -1191,8 +1228,13 @@ export class MultiplayerGameScene extends Phaser.Scene {
 
 
     sendMessage(message) {
-        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-            this.ws.send(JSON.stringify(message));
+        try {
+            console.log('[MultiplayerClient] sendMessage', message);
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.ws.send(JSON.stringify(message));
+            }
+        } catch (e) {
+            console.warn('[MultiplayerClient] sendMessage failed', e);
         }
     }
 
