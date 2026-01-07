@@ -105,11 +105,42 @@ export function createGameRoomService(userService = null) {
     // Update mole position
     room.moleHoleIndex = holeIndex;
 
-    // Relay to player 1
-    room.player1.ws.send(JSON.stringify({
-      type: 'moleMove',
-      holeIndex
-    }));
+    // Broadcast mole move to both players so both views stay in sync
+    const msg = JSON.stringify({ type: 'moleMove', holeIndex });
+    if (room.player1 && room.player1.ws && room.player1.ws.readyState === 1) {
+      try { room.player1.ws.send(msg); } catch (e) { /* ignore send errors */ }
+    }
+    if (room.player2 && room.player2.ws && room.player2.ws.readyState === 1) {
+      try { room.player2.ws.send(msg); } catch (e) { /* ignore send errors */ }
+    }
+  }
+
+  /**
+   * Relay hammer position from player1 to player2
+   * @param {WebSocket} ws
+   * @param {number} x
+   * @param {number} y
+   * @param {number} angle
+   */
+  function handleHammerMove(ws, x, y, angle) {
+    const roomId = ws.roomId;
+    if (!roomId) return;
+
+    const room = rooms.get(roomId);
+    if (!room || !room.active) return;
+
+    // Only player1 (Pom) sends hammer moves
+    if (room.player1.ws !== ws) return;
+
+    // Forward to player2 so they can animate the hammer
+    if (room.player2 && room.player2.ws && room.player2.ws.readyState === 1) {
+      room.player2.ws.send(JSON.stringify({
+        type: 'hammerMove',
+        x,
+        y,
+        angle
+      }));
+    }
   }
 
   /**
@@ -390,12 +421,17 @@ export function createGameRoomService(userService = null) {
     if (!room) return;
 
     if (room.active) {
-      const opponent = room.player1.ws === ws ? room.player2.ws : room.player1.ws;
+      const opponent = room.player1.ws === ws ? room.player2 : room.player1;
 
-      if (opponent && opponent.readyState === 1) {
-        opponent.send(JSON.stringify({
-          type: 'playerDisconnected'
-        }));
+      // Notify opponent and gracefully end their game
+      if (opponent && opponent.ws && opponent.ws.readyState === 1) {
+        try {
+          opponent.ws.send(JSON.stringify({ type: 'playerDisconnected' }));
+          // Also send gameOver so client can show end state if desired
+          opponent.ws.send(JSON.stringify({ type: 'gameOver', winner: (room.player1.ws === ws) ? 'player2' : 'player1', player1Score: room.player1.score, player2Score: room.player2.score }));
+        } catch (e) {
+          // ignore
+        }
       }
 
       // Persist current scores
@@ -426,6 +462,8 @@ export function createGameRoomService(userService = null) {
     // Only player 2 can send hit results
     if (room.player2.ws !== ws) return;
 
+    console.log(`[GameRoomService] handleHammerHitResult room=${roomId} hit=${hit} miss=${miss}`);
+
     if (hit) {
       room.player1.score += 1;
     } else if (miss) {
@@ -439,8 +477,88 @@ export function createGameRoomService(userService = null) {
       player2Score: room.player2.score
     };
 
-    room.player1.ws.send(JSON.stringify(scoreUpdate));
-    room.player2.ws.send(JSON.stringify(scoreUpdate));
+    const sMsg = JSON.stringify(scoreUpdate);
+    if (room.player1 && room.player1.ws && room.player1.ws.readyState === 1) {
+      try { room.player1.ws.send(sMsg); } catch (e) { /* ignore */ }
+    }
+    if (room.player2 && room.player2.ws && room.player2.ws.readyState === 1) {
+      try { room.player2.ws.send(sMsg); } catch (e) { /* ignore */ }
+    }
+  }
+
+  /**
+   * Relay hammer hit attempt from player1 to player2 so player2 computes hit/miss
+   * @param {WebSocket} ws
+   * @param {number} x
+   * @param {number} y
+   */
+  function handleHammerHit(ws, holeIndex, x, y) {
+    const roomId = ws.roomId;
+    if (!roomId) return;
+
+    const room = rooms.get(roomId);
+    if (!room || !room.active) return;
+
+    // Only player1 (Pom) sends hammer hit attempts
+    if (room.player1.ws !== ws) return;
+
+    // holeIndex passed as first parameter after ws
+    const idx = (typeof holeIndex === 'number') ? holeIndex : -1;
+
+      function handleHammerHit(roomId, playerId, payload) {
+        const room = rooms[roomId];
+        if (!room) return;
+
+        // payload expected: { holeIndex, x, y }
+        const { holeIndex } = payload;
+        const isPlayer1 = room.player1Id === playerId;
+
+        // server authoritative: compare against current mole hole
+        const hit = (holeIndex === room.moleHoleIndex);
+
+        if (hit) {
+          if (isPlayer1) {
+            room.player1Score = (room.player1Score || 0) + 1;
+          } else {
+            room.player2Score = (room.player2Score || 0) + 1;
+          }
+        }
+
+        // broadcast hammer result and updated scores to both players
+        const payloadOut = {
+          type: 'hammerResult',
+          hit,
+          holeIndex,
+          player1Score: room.player1Score || 0,
+          player2Score: room.player2Score || 0,
+        };
+
+        [room.player1Socket, room.player2Socket].forEach((ws) => {
+          if (!ws) return;
+          if (ws.readyState !== WebSocket.OPEN) return;
+          try {
+            ws.send(JSON.stringify(payloadOut));
+          } catch (err) {
+            logger.error('Failed sending hammerResult', err);
+          }
+        });
+      }
+  }
+
+  /**
+   * Relay pause request to opponent
+   * @param {WebSocket} ws
+   */
+  function handlePause(ws) {
+    const roomId = ws.roomId;
+    if (!roomId) return;
+    const room = rooms.get(roomId);
+    if (!room) return;
+
+    const opponent = room.player1.ws === ws ? room.player2.ws : room.player1.ws;
+    if (opponent && opponent.readyState === 1) {
+      opponent.send(JSON.stringify({ type: 'pause' }));
+    }
   }
 
   /**
@@ -454,12 +572,15 @@ export function createGameRoomService(userService = null) {
   return {
     createRoom,
     handleMoleMove,
+    handleHammerMove,
+    handleHammerHit,
     handleHammerHitResult,
     handleMoleMiss,
     handlePowerupSpawnRequest,
     handlePowerupPickup,
     handlePowerupUse,
     handleDisconnect,
+    handlePause,
     getActiveRoomCount
   };
 }

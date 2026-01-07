@@ -87,18 +87,31 @@ export class MultiplayerGameScene extends Phaser.Scene {
         this.add.image(680, 480, 'agujero').setScale(0.5);
         this.add.image(800, 320, 'agujero').setScale(0.5);
 
-        this.pin = new Pin(this, 'Topo', 400, 300);
+        // Input and hammer setup
+        if (this.playerRole === 'player1') {
+            this.input.on('pointerdown', pointer => {
+                this.handlePointerDown(pointer);
+            });
 
-    if (this.playerRole === 'player2') {
-        this.martillo = new Pom(this, 'Martillo', 400, 300);
-        this.game.canvas.style.cursor = 'none';
-    }
-
-    if (this.playerRole === 'player1') {
-        this.input.on('pointerdown', pointer => {
-            this.handlePointerDown(pointer);
-        });
-    }
+            // Create hammer that will follow the mouse for P1
+            this.martillo = new Pom(
+                this,
+                'Martillo',
+                this.input.activePointer.worldX,
+                this.input.activePointer.worldY,
+                { followPointer: true }
+            );
+            this.game.canvas.style.cursor = 'none';
+        } else {
+            // For player2, create a martillo sprite to display the opponent's hammer
+            // but do NOT follow the local pointer and make it non-interactive
+            this.martillo = new Pom(this, 'Martillo', 400, 300, { followPointer: false });
+            this.martillo.setVisible(false);
+            try {
+                // Ensure it cannot be interacted with locally
+                if (this.martillo.disableInteractive) this.martillo.disableInteractive();
+            } catch (e) {}
+        }
 
         // Sonido de fondo
         this.musicaNivel = this.sound.add('Musica_nivel');
@@ -108,15 +121,7 @@ export class MultiplayerGameScene extends Phaser.Scene {
         this.input.mouse.disableContextMenu();
         this.game.canvas.style.cursor = 'none';
 
-        // Martillo que sigue al ratón (Pom) - only for Player 1
-        if (this.playerRole === 'player1') {
-            this.martillo = new Pom(
-                this,
-                'Martillo',
-                this.input.activePointer.worldX,
-                this.input.activePointer.worldY
-            );
-        }
+        // (hammer already created above for P1)
 
         // Scores arriba a la izquierda y derecha
         this.scorePlayer1 = this.add.text(80, 50, 'Pom: 0', {
@@ -268,11 +273,58 @@ export class MultiplayerGameScene extends Phaser.Scene {
                 }
                 break;
 
-            case 'hammerHit':
-                if (this.playerRole === 'player2') {
-                    this.handleHammerHit(data.x, data.y);
-                 }
-                 break;
+            case 'hammerMove':
+                // Update hammer position on the client that does NOT control it
+                // Update hammer position on the client that does NOT control it
+                if (this.martillo) {
+                    // ensure visible
+                    this.martillo.setVisible(true);
+                    if (typeof this.martillo.setPosition === 'function') {
+                        this.martillo.setPosition(data.x, data.y);
+                    } else {
+                        this.martillo.x = data.x;
+                        this.martillo.y = data.y;
+                    }
+                    // angle helper
+                    if (typeof this.martillo.setAngle === 'function') this.martillo.setAngle(data.angle || 0);
+                    else this.martillo.angle = data.angle || 0;
+                }
+                break;
+
+            case 'hammerResult':
+                // Server-side result of a hammer attempt
+                console.log('[Multiplayer] hammerResult received', data);
+                // Show opponent's hammer at the targeted hole (if holeIndex provided)
+                const idx = (typeof data.holeIndex === 'number') ? data.holeIndex : -1;
+                if (idx >= 0 && this.topoHoles && this.topoHoles[idx]) {
+                    const pos = this.topoHoles[idx];
+                    if (this.martillo) {
+                        this.martillo.setVisible(true);
+                        // place the hammer slightly above the hole so it looks natural
+                        if (typeof this.martillo.setPosition === 'function') this.martillo.setPosition(pos.x, pos.y - 20);
+                        else { this.martillo.x = pos.x; this.martillo.y = pos.y - 20; }
+                        // play the hit animation if available
+                        if (typeof this.martillo.hit === 'function') this.martillo.hit();
+                        // hide after short delay
+                        this.time.delayedCall(500, () => { try { if (this.martillo && this.martillo.setVisible) this.martillo.setVisible(false); } catch (e) {} });
+                    }
+                }
+
+                // Play sounds / effects depending on hit/miss
+                if (data.hit) {
+                    if (this.topo && typeof this.topo.hide === 'function') this.topo.hide();
+                    this.sound.play('Golpe');
+                    this.sound.play('Castor');
+                    this.cameras.main.shake(200, 0.01);
+                } else {
+                    this.sound.play('Sonido_martillo');
+                }
+
+                // Update scores if provided
+                if (typeof data.player1Score === 'number') this.puntosPlayer1 = data.player1Score;
+                if (typeof data.player2Score === 'number') this.puntosPlayer2 = data.player2Score;
+                this.updateScoreUI();
+                break;
 
 
             case 'powerupSpawn':
@@ -292,6 +344,7 @@ export class MultiplayerGameScene extends Phaser.Scene {
 
             case 'scoreUpdate':
                 // Update scores
+                console.log('[Multiplayer] scoreUpdate received', data);
                 this.puntosPlayer1 = data.player1Score;
                 this.puntosPlayer2 = data.player2Score;
                 this.updateScoreUI();
@@ -309,6 +362,15 @@ export class MultiplayerGameScene extends Phaser.Scene {
 
             case 'playerDisconnected':
                 this.handleDisconnection();
+                break;
+
+            case 'pause':
+                if (!this.isGameOver) {
+                    this.scene.launch('PauseScene', { originalScene: 'MultiplayerGameScene' });
+                    try { this.scene.bringToTop('PauseScene'); } catch (e) {}
+                    // Pause current scene explicitly
+                    try { this.scene.pause(); } catch (e) {}
+                }
                 break;
 
             default:
@@ -349,20 +411,45 @@ export class MultiplayerGameScene extends Phaser.Scene {
             return;
         }
 
-        // Si LMB: intentar golpear topo
+        // Si LMB: intentar golpear topo (solo en P1)
         if (isLeft) {
-            // animación del martillo SIEMPRE que se golpea
+            // animación del martillo SIEMPRE que se golpea localmente
             if (this.martillo) {
                 this.martillo.hit();
             }
 
-            // Send hit attempt to server
+            // Determine holeIndex under pointer (if any)
+            const px = (pointer.worldX !== undefined) ? pointer.worldX : pointer.x;
+            const py = (pointer.worldY !== undefined) ? pointer.worldY : pointer.y;
+            const holeIndex = this.getHoleIndexFromPointer(px, py);
+
+            // Send hit attempt to server including holeIndex and coords
             this.sendMessage({
                 type: 'hammerHit',
-                x: pointer.x,
-                y: pointer.y
+                holeIndex,
+                x: px,
+                y: py
             });
         }
+    }
+
+    getHoleIndexFromPointer(x, y) {
+        if (!this.topoHoles || !this.topoHoles.length) return -1;
+        let best = -1;
+        let bestDist = Infinity;
+        for (let i = 0; i < this.topoHoles.length; i++) {
+            const h = this.topoHoles[i];
+            const dx = x - h.x;
+            const dy = y - (h.y - 10); // powerups sit slightly above
+            const d2 = dx * dx + dy * dy;
+            if (d2 < bestDist) {
+                bestDist = d2;
+                best = i;
+            }
+        }
+        // threshold: accept only if within ~80px
+        if (bestDist <= 80 * 80) return best;
+        return -1;
     }
 
     handleHammerHit(x, y) {
@@ -386,6 +473,7 @@ export class MultiplayerGameScene extends Phaser.Scene {
         }
 
         // Send result to server
+        console.log('[Multiplayer] sending hammerHitResult', { hit, miss });
         this.sendMessage({
             type: 'hammerHitResult',
             hit,
@@ -422,17 +510,14 @@ export class MultiplayerGameScene extends Phaser.Scene {
             // Evitar que el evento burbujee al input global
             try { if (event && event.stopPropagation) event.stopPropagation(); } catch (err) { console.warn('stopPropagation failed', err); }
             if (this.isGameOver) return;
-            if (this.topo.isActive && !this.pinBlocked) {
-                // Golpe exitoso -> punto para jugador 1 (Pom)
-                // this.puntosPlayer1 += 1;
-                //this.updateScoreUI();
-
-                // Animar el martillo cuando golpea
+            // In multiplayer only allow local pointer hits if this client is Player1 (Pom)
+            if (this.topo.isActive && !this.pinBlocked && this.playerRole === 'player1') {
+                // Animar el martillo cuando golpea (solo P1 tiene control local)
                 if (this.martillo) {
                     this.martillo.hit();
                 }
 
-                // Marcar el topo como golpeado y procesar el golpe
+                // Marcar el topo como golpeado y procesar el golpe locally (visual feedback)
                 if (typeof this.topo.hit === 'function') {
                     this.topo.hit();
                 } else {
@@ -629,9 +714,15 @@ export class MultiplayerGameScene extends Phaser.Scene {
         this.add.text(cx, cy, 'Opponent Disconnected', {
             fontSize: '48px',
             color: '#ff0000'
-        }).setOrigin(0.5);
+        }).setOrigin(0.5).setDepth(2000);
 
-        this.createMenuButton();
+        // Give a short pause for the message, then return to lobby/menu
+        setTimeout(() => {
+            try {
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) this.ws.close();
+            } catch (e) {}
+            this.scene.start('MenuScene');
+        }, 1200);
     }
 
     createMenuButton() {
@@ -869,26 +960,39 @@ export class MultiplayerGameScene extends Phaser.Scene {
             this.input.activePointer.worldX,
             this.input.activePointer.worldY
         );
+        // Send hammer position to server (throttle to ~20Hz)
+        const now = Date.now();
+        if (!this._lastHammerSentTime) this._lastHammerSentTime = 0;
+        if (now - this._lastHammerSentTime > 50) {
+            this.sendMessage({ type: 'hammerMove', x: this.martillo.x, y: this.martillo.y, angle: this.martillo.angle || 0 });
+            this._lastHammerSentTime = now;
+        }
     }
 
         // Player 2 controls mole movement with keyboard
         if (this.playerRole === 'player2' && this.topo) {
             if (this.keys.one.isDown) {
+                this.topo.moveToHole(0);
                 this.sendMessage({ type: 'moleMove', holeIndex: 0 });
             }
             if (this.keys.two.isDown) {
+                this.topo.moveToHole(1);
                 this.sendMessage({ type: 'moleMove', holeIndex: 1 });
             }
             if (this.keys.three.isDown) {
+                this.topo.moveToHole(2);
                 this.sendMessage({ type: 'moleMove', holeIndex: 2 });
             }
             if (this.keys.four.isDown) {
+                this.topo.moveToHole(3);
                 this.sendMessage({ type: 'moleMove', holeIndex: 3 });
             }
             if (this.keys.five.isDown) {
+                this.topo.moveToHole(4);
                 this.sendMessage({ type: 'moleMove', holeIndex: 4 });
             }
             if (this.keys.six.isDown) {
+                this.topo.moveToHole(5);
                 this.sendMessage({ type: 'moleMove', holeIndex: 5 });
             }
         }
@@ -896,8 +1000,12 @@ export class MultiplayerGameScene extends Phaser.Scene {
         // ESC para pausar
         if (Phaser.Input.Keyboard.JustDown(this.keys.esc)) {
             if (!this.isGameOver) {
+                // Notify opponent and pause locally
+                this.sendMessage({ type: 'pause' });
                 this.scene.launch('PauseScene', { originalScene: 'MultiplayerGameScene' });
-                this.scene.pause();
+                // Ensure PauseScene is above everything and pause this scene by key
+                try { this.scene.bringToTop('PauseScene'); } catch (e) {}
+                this.scene.pause('MultiplayerGameScene');
             }
         }
 

@@ -2,13 +2,14 @@ import Phaser from 'phaser';
 
 export class Pom extends Phaser.GameObjects.Image {
 
-    constructor(scene, id, x, y) {
+    // opts: { followPointer: boolean }
+    constructor(scene, id, x, y, opts = {}) {
         super(scene, x, y, 'Martillo');
 
         this.scene = scene;
         this.id = id;
 
-     this.setOrigin(0.5, 0.35);
+        this.setOrigin(0.5, 0.35);
 
         this.setScale(1.0);
         this.setDepth(1000);
@@ -19,13 +20,31 @@ export class Pom extends Phaser.GameObjects.Image {
         this.isHitting = false;
         this.hitOffset = 45;
 
-        // El martillo sigue al ratón (pero se bloquea si thermometerEffectActive está activo)
-        scene.input.on('pointermove', (pointer) => {
-            if (!this.isHitting && !this.scene.thermometerEffectActive) {
-                this.x = pointer.x;
-                this.y = pointer.y;
+        // El martillo puede opcionalmente seguir al ratón
+        const follow = opts.followPointer !== undefined ? opts.followPointer : true;
+        if (follow) {
+            this._pointerMoveHandler = (pointer) => {
+                if (!this.isHitting && !this.scene.thermometerEffectActive) {
+                    this.x = pointer.x;
+                    this.y = pointer.y;
+                }
+            };
+            scene.input.on('pointermove', this._pointerMoveHandler);
+        }
+    }
+
+    destroy(fromScene) {
+        // Remove pointermove handler if registered
+        try {
+            if (this._pointerMoveHandler && this.scene && this.scene.input) {
+                this.scene.input.off('pointermove', this._pointerMoveHandler);
+                this._pointerMoveHandler = null;
             }
-        });
+        } catch (e) {
+            // ignore
+        }
+
+        super.destroy(fromScene);
     }
 
    hit() {

@@ -16,12 +16,21 @@ export class PauseScene extends Phaser.Scene {
             this.game.canvas.style.cursor = 'auto';
         }
 
+        // If an original scene key was provided, pause it explicitly to ensure timers/events stop
+        if (data.originalScene) {
+            try {
+                this.scene.pause(data.originalScene);
+            } catch (e) {
+                console.warn('[PauseScene] Could not pause original scene', e);
+            }
+        }
+
         const outerBlocker = this.add.rectangle(cx, cy, w, h, 0x000000, 0.6).setOrigin(0.5);
         outerBlocker.setInteractive();
-        outerBlocker.setDepth(0);
+        outerBlocker.setDepth(1000);
 
         const panel = this.add.rectangle(cx, cy, 540, 460, 0x11121a).setStrokeStyle(3, 0x00cc66).setOrigin(0.5);
-        panel.setDepth(1);
+        panel.setDepth(1001);
 
         panel.scale = 0.9;
         this.tweens.add({ targets: panel, scale: 1, duration: 180, ease: 'Back.Out' });
@@ -31,17 +40,17 @@ export class PauseScene extends Phaser.Scene {
             fontStyle: 'bold',
             color: '#00cc66',
             fontFamily: 'Arial'
-        }).setOrigin(0.5).setDepth(2);
+        }).setOrigin(0.5).setDepth(1002);
 
-        this.add.rectangle(cx, cy - 140, 340, 3, 0x00cc66).setOrigin(0.5).setDepth(2);
+        this.add.rectangle(cx, cy - 140, 340, 3, 0x00cc66).setOrigin(0.5).setDepth(1002);
 
         const resumeBtn = this.createButton(cx, cy - 40, 'REANUDAR', 0x00cc66, 0x66ffb2);
         const menuBtn = this.createButton(cx, cy + 40, 'MENÚ PRINCIPAL', 0xff6b6b, 0xff9a9a);
         const settingsBtn = this.createButton(cx, cy + 120, 'AJUSTES', 0xffffff, 0xcccccc);
 
-        resumeBtn.setDepth(10);
-        menuBtn.setDepth(10);
-        settingsBtn.setDepth(10);
+        resumeBtn.setDepth(1003);
+        menuBtn.setDepth(1003);
+        settingsBtn.setDepth(1003);
         resumeBtn.on('pointerdown', () => {
             if (this.game && this.game.canvas && this.game.canvas.style) {
                 this.game.canvas.style.cursor = this._prevCursor || 'auto';
@@ -118,9 +127,24 @@ export class PauseScene extends Phaser.Scene {
         label.setScale(1);
     });
 
+    const clickHandler = () => {
+        this.tweens.add({ targets: btn, scaleX: 0.98, scaleY: 0.98, duration: 80, yoyo: true });
+        btn.emit('pointerdown');
+    };
+
     btn.on('pointerdown', () => {
         this.tweens.add({ targets: btn, scaleX: 0.98, scaleY: 0.98, duration: 80, yoyo: true });
     });
+
+    // Also forward clicks from child elements to container to improve hit reliability
+    try {
+        bg.setInteractive();
+        bg.on('pointerdown', clickHandler);
+    } catch (e) {}
+    try {
+        label.setInteractive();
+        label.on('pointerdown', clickHandler);
+    } catch (e) {}
 
     return btn;
 }
