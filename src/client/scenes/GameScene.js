@@ -123,19 +123,19 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
     ).setOrigin(1, 1);
 
     // Powerup UI
-    this.powerupTextP1 = this.add.text(80, 80, `P1 Powerups: ${this.powerupStoredP1}/${this.powerupMaxStoredP1}`, {
+this.powerupTextP1 = this.add.text(80, 80, `P1 Powerups: ${this.powerupStoredP1.length}/${this.powerupMaxStoredP1}`, {
       fontSize: '16px',
       color: '#6a7cb4ff',
       fontStyle: 'bold',
       fontFamily: 'Arial'
     }).setOrigin(0, 0);
 
-    this.powerupTextP2 = this.add.text(this.scale.width + 20, 80, `P2 Powerups: ${this.powerupStoredP2}/${this.powerupMaxStoredP2}`, {
-      fontSize: '16px',
-      color: '#9e4b4bff',
-      fontStyle: 'bold',
-      fontFamily: 'Arial'
-    }).setOrigin(1.5, 0);
+this.powerupTextP2 = this.add.text(this.scale.width - 80, 80, `P2 Powerups: ${this.powerupStoredP2.length}/${this.powerupMaxStoredP2}`, {
+        fontSize: '16px',
+        color: '#9e4b4bff',
+        fontStyle: 'bold',
+        fontFamily: 'Arial'
+    }).setOrigin(1, 0);
 
     // Teclas: solo se crean una vez
     this.keys = this.input.keyboard.addKeys({
@@ -423,7 +423,8 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
     // Sonido al recoger powerup
     if (this.sound.get('Boton')) this.sound.play('Boton');
 
-    // Update UI
+    // Log and Update UI
+    console.debug('[GameScene] pickupPowerupByPlayer', { playerId, storedP1: this.powerupStoredP1.length, storedP2: this.powerupStoredP2.length });
     this.updatePowerupUI();
 
     // Destroy powerup and schedule next spawn
@@ -433,15 +434,6 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
       this.powerupHoleIndex = -1;
     }
     this.scheduleNextPowerup();
-
-    /* Si es P2 en juego local, usar el powerup al instante
-    if (playerId === 2) {
-      try {
-        this.usePowerupByPlayer(2);
-      } catch (err) {
-        console.warn('Failed to auto-use powerup for P2 (local):', err);
-      }
-    }*/
 
     return true;
   }
@@ -512,19 +504,17 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
     this.cameras.main.flash(150, 100, 255, 100);
     if (this.sound.get('Boton')) this.sound.play('Boton');
 
-    // actualizar UI
-    this.updatePowerupUI();
-
     // incrementar contador de powerups usados
     if (playerId === 1) {
-      this.powerupsUsedP1++;
+        this.powerupsUsedP1++;
     } else {
-      this.powerupsUsedP2++;
+        this.powerupsUsedP2++;
     }
 
-    return true;
-  }
+    console.debug('[GameScene] usePowerupByPlayer', { playerId, powerupType, storedP1: this.powerupStoredP1.length, storedP2: this.powerupStoredP2.length, usedP1: this.powerupsUsedP1, usedP2: this.powerupsUsedP2 });
 
+    // actualizar UI
+    this.updatePowerupUI();
   // ----------------------
   // UI update helpers
   // ----------------------
@@ -738,8 +728,6 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
   this.input.keyboard.once('keydown-ENTER', () => this.scene.restart());
   this.input.keyboard.once('keydown-ESC', () => this.scene.start('MenuScene'));
 }
-
-
 
   // ----------------------
   // Resume handler 
