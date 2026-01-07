@@ -434,7 +434,11 @@ export class MultiplayerGameScene extends Phaser.Scene {
 
         // Si se hace RMB en otro sitio: usar powerup P1 (Pom)
         if (isRight) {
-            this.sendMessage({ type: 'powerupUse', playerId: 1 });
+            // Optimistically apply locally for immediate feedback; server will authoritatively validate and broadcast
+            const ok = this.usePowerupByPlayer(1);
+            if (ok) {
+                this.sendMessage({ type: 'powerupUse', playerId: 1 });
+            }
             return;
         }
 
@@ -1025,7 +1029,11 @@ export class MultiplayerGameScene extends Phaser.Scene {
 
         // SPACE para usar powerup P2
         if (Phaser.Input.Keyboard.JustDown(this.keys.space) && this.playerRole === 'player2') {
-            this.sendMessage({ type: 'powerupUse', playerId: 2 });
+            // Optimistic local use for responsiveness
+            const ok = this.usePowerupByPlayer(2);
+            if (ok) {
+                this.sendMessage({ type: 'powerupUse', playerId: 2 });
+            }
         }
     }
 

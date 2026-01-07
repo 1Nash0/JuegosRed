@@ -600,7 +600,6 @@ export function createGameRoomService(userService = null) {
     rooms.delete(roomId);
   }
 
-  
 
   /**
    * Handle hammer hit result from player 2
@@ -727,14 +726,14 @@ export function createGameRoomService(userService = null) {
     // record time to avoid immediate double-counting with a subsequent moleMiss event
     room.lastHitAt = Date.now();
 
-    // If hit or miss resolved a visible mole, clear active flag so subsequent moleMiss won't double-count
+
     room.moleActive = false;
     if (room._moleActiveTimer) {
       clearTimeout(room._moleActiveTimer);
       room._moleActiveTimer = null;
     }
 
-    // Broadcast hammerResult to both players (contains holeIndex for visual placement)
+
     const hammerResult = {
       type: 'hammerResult',
       hit: !!hit,
@@ -752,7 +751,6 @@ export function createGameRoomService(userService = null) {
       try { room.player2.ws.send(msg); } catch (e) { /* ignore */ }
     }
 
-    // Also forward the raw hammer attempt to player2 for immediate animation of the opponent's hammer (non-authoritative)
     try {
       if (room.player2 && room.player2.ws && room.player2.ws.readyState === 1) {
         room.player2.ws.send(JSON.stringify({ type: 'hammerMove', x: px, y: py, holeIndex: idx }));
@@ -832,7 +830,6 @@ export function createGameRoomService(userService = null) {
     handlePause,
     handleResume,
     getActiveRoomCount,
-    // debug helpers
     debugSetPowerup,
     debugGetRoom
   };
