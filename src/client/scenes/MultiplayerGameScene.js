@@ -357,8 +357,8 @@ export class MultiplayerGameScene extends Phaser.Scene {
                 break;
 
             case 'powerupUse':
-                // Player used powerup
-                this.usePowerupByPlayer(data.playerId);
+                // Player used powerup (server includes powerupType to ensure correct visual/effect)
+                this.usePowerupByPlayer(data.playerId, data.powerupType);
                 break;
 
             case 'scoreUpdate':
@@ -770,8 +770,10 @@ export class MultiplayerGameScene extends Phaser.Scene {
     scheduleNextPowerup() {
         if (this.isGameOver) return;
         if (this.powerup) return;
-        if (this.powerupMaxStoredP1 <= 0) return;
-        if (this.powerupMaxStoredP2 <= 0) return;
+        // Spawn only if at least one player can store another powerup
+        const p1CanStore = this.powerupStoredP1.length < this.powerupMaxStoredP1;
+        const p2CanStore = this.powerupStoredP2.length < this.powerupMaxStoredP2;
+        if (!p1CanStore && !p2CanStore) return;
 
         const delay = Phaser.Math.Between(this.powerupSpawnMin, this.powerupSpawnMax);
         this.time.delayedCall(delay, () => {
@@ -864,33 +866,35 @@ export class MultiplayerGameScene extends Phaser.Scene {
         return true;
     }
 
-    usePowerupByPlayer(playerId) {
+    usePowerupByPlayer(playerId, forcedPowerupType = undefined) {
         if (this.isGameOver) return false;
 
         let powerupType;
-        if (playerId === 1) {
-            if (this.powerupStoredP1.length <= 0) return false;
-            powerupType = this.powerupStoredP1.pop();
-            if(this.powerupMaxStoredP1>0)
-                this.powerupMaxStoredP1--
+        // If the server forced a powerupType (broadcasted), use that; otherwise pop local stored one
+        if (typeof forcedPowerupType === 'string') {
+            powerupType = forcedPowerupType;
+            // remove one instance from local store if present (safe cleanup)
+            const store = (playerId === 1) ? this.powerupStoredP1 : this.powerupStoredP2;
+            const idx = store.indexOf(powerupType);
+            if (idx !== -1) store.splice(idx, 1);
         } else {
-            if (this.powerupStoredP2.length <= 0) return false;
-            powerupType = this.powerupStoredP2.pop();
-            if(this.powerupMaxStoredP2>0)
-                this.powerupMaxStoredP2--;
+            if (playerId === 1) {
+                if (this.powerupStoredP1.length <= 0) return false;
+                powerupType = this.powerupStoredP1.pop();
+            } else {
+                if (this.powerupStoredP2.length <= 0) return false;
+                powerupType = this.powerupStoredP2.pop();
+            }
         }
 
         // Apply effect based on type
         if (powerupType === POWERUP_CLOCK) {
-            // Aumentar tiempo
-            //this.timeLeft += this.powerupAmount;
+            // Aumentar tiempo (server-authoritative is preferred)
             this.timerText.setText(this.formatTime(this.timeLeft));
         } else if (powerupType === POWERUP_THERMOMETER) {
-            // Activar efecto del termómetro
+            // Activar efecto del termómetro (visual + block locally, scoring is server-authoritative)
             this.thermometerEffectActive = true;
-            //this.pinBlocked = true;
-            //detener el tiempo
-            this.gameTimer.paused = true;
+            this.pinBlocked = true;
 
             //sonido de frio
             this.sound.play('Frio');
@@ -905,22 +909,10 @@ export class MultiplayerGameScene extends Phaser.Scene {
                 0.4 // alfa 40% para que se vea de fondo pero transparente
             ).setDepth(10); // por encima de la mayoría de objetos pero no de UI crítica
 
-            this.thermometerTimer = this.time.addEvent({
-                delay: 1000,
-                repeat: 3, // 4 ticks: 0,1,2,3
-                callback: () => {
-                    this.puntosPlayer2 += 2;
-                    this.updateScoreUI();
-                }
-            });
+            // Do NOT award points locally here; server will send scoreUpdate ticks
             this.time.delayedCall(4000, () => {
                 this.thermometerEffectActive = false;
                 this.pinBlocked = false;
-                this.gameTimer.paused = false;
-                if (this.thermometerTimer) {
-                    this.thermometerTimer.destroy();
-                    this.thermometerTimer = null;
-                }
                 // Eliminar el overlay al terminar
                 if (overlay) {
                     overlay.destroy();

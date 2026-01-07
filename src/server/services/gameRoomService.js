@@ -375,24 +375,56 @@ export function createGameRoomService(userService = null) {
     if (powerupType === POWERUP_CLOCK) {
       room.timeLeft += 20;
     } else if (powerupType === POWERUP_THERMOMETER) {
+      // Activate thermometer: block Pin and award points over time (server-authoritative)
       room.thermometerActive = true;
       room.pinBlocked = true;
 
-      // Timer for thermometer effect
-      setTimeout(() => {
-        room.thermometerActive = false;
-        room.pinBlocked = false;
-      }, 4000);
+      // Clear any existing thermometer interval
+      if (room._thermometerInterval) {
+        clearInterval(room._thermometerInterval);
+        room._thermometerInterval = null;
+      }
+
+      let ticks = 0;
+      room._thermometerInterval = setInterval(() => {
+        if (!room.active) {
+          clearInterval(room._thermometerInterval);
+          room._thermometerInterval = null;
+          room.thermometerActive = false;
+          room.pinBlocked = false;
+          return;
+        }
+
+        ticks++;
+        room.player2.score += 2;
+
+        // Broadcast score update each tick
+        const scoreUpdate = {
+          type: 'scoreUpdate',
+          player1Score: room.player1.score,
+          player2Score: room.player2.score
+        };
+        try { room.player1.ws.send(JSON.stringify(scoreUpdate)); } catch (e) { /* ignore */ }
+        try { room.player2.ws.send(JSON.stringify(scoreUpdate)); } catch (e) { /* ignore */ }
+
+        if (ticks >= 4) {
+          clearInterval(room._thermometerInterval);
+          room._thermometerInterval = null;
+          room.thermometerActive = false;
+          room.pinBlocked = false;
+        }
+      }, 1000);
     }
 
-    // Send to both players
+    // Send to both players (include powerupType so clients can show correct visuals)
     const useMsg = {
       type: 'powerupUse',
-      playerId
+      playerId,
+      powerupType
     };
 
-    room.player1.ws.send(JSON.stringify(useMsg));
-    room.player2.ws.send(JSON.stringify(useMsg));
+    try { room.player1.ws.send(JSON.stringify(useMsg)); } catch (e) { /* ignore */ }
+    try { room.player2.ws.send(JSON.stringify(useMsg)); } catch (e) { /* ignore */ }
   }
 
   /**
@@ -430,8 +462,14 @@ export function createGameRoomService(userService = null) {
 
     room.active = false;
 
+    // Clear any active thermometer interval to avoid stray timers
+    if (room._thermometerInterval) {
+      clearInterval(room._thermometerInterval);
+      room._thermometerInterval = null;
+    }
+
     const p1Score = room.player1.score;
-    const p2Score = room.player2.score;
+    const p2Score = room.player2.score; 
 
     let winner;
     if (p1Score > p2Score) {
@@ -552,6 +590,13 @@ export function createGameRoomService(userService = null) {
     }
 
     room.active = false;
+
+    // Clear any active thermometer interval
+    if (room._thermometerInterval) {
+      clearInterval(room._thermometerInterval);
+      room._thermometerInterval = null;
+    }
+
     rooms.delete(roomId);
   }
 

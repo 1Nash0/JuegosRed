@@ -131,6 +131,20 @@ export class Pin {
             console.warn('Emit topoHidden failed', e);
         }
 
+        // Si no fue golpeado, emitir también 'topoMissed' para que la escena pueda
+        // enviar un mensaje 'moleMiss' al servidor y así sumar el punto de Pin
+        if (!this._wasHit) {
+            try {
+                this.scene.events.emit('topoMissed', {
+                    id: this.id,
+                    holeIndex: this.currentHoleIndex,
+                    timestamp: (this.scene.time) ? this.scene.time.now : Date.now()
+                });
+            } catch (e) {
+                console.warn('Emit topoMissed failed', e);
+            }
+        }
+
     }
 
     // Cuando se golpea al topo - retorna true si fue golpeado
