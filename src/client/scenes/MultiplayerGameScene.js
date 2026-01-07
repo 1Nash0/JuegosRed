@@ -22,7 +22,7 @@ export class MultiplayerGameScene extends Phaser.Scene {
         this.roomId = data.roomId;
 
         // Game state
-        this.timeLeft = 10;
+        this.timeLeft = 60;
         this.isGameOver = false;
 
         // Scores
@@ -708,7 +708,7 @@ export class MultiplayerGameScene extends Phaser.Scene {
        
 
         createButton(
-            cx + 130,
+            cx,
             btnY,
             'Menú Principal',
             0xffdba8,
@@ -728,7 +728,7 @@ export class MultiplayerGameScene extends Phaser.Scene {
         const cx = this.scale.width / 2;
         const cy = this.scale.height / 2;
 
-        this.add.text(cx, cy, 'Opponent Disconnected', {
+        this.add.text(cx, cy, 'Oponente desconectado', {
             fontSize: '48px',
             color: '#ff0000'
         }).setOrigin(0.5).setDepth(2000);
@@ -743,7 +743,7 @@ export class MultiplayerGameScene extends Phaser.Scene {
     }
 
     createMenuButton() {
-        const menuBtn = this.add.text(400, 400, 'Return to Main Menu', {
+        const menuBtn = this.add.text(400, 400, 'Volver al Menu', {
             fontSize: '32px',
             color: '#ffffff',
         }).setOrigin(0.5)
@@ -1022,7 +1022,7 @@ export class MultiplayerGameScene extends Phaser.Scene {
             }
         }
 
-        // ESC para pausar
+        /* ESC para pausar
         if (Phaser.Input.Keyboard.JustDown(this.keys.esc)) {
             if (!this.isGameOver) {
                 // Notify opponent and pause locally
@@ -1032,7 +1032,7 @@ export class MultiplayerGameScene extends Phaser.Scene {
                 try { this.scene.bringToTop('PauseScene'); } catch (e) {}
                 this.scene.pause('MultiplayerGameScene');
             }
-        }
+        }*/
 
         // SPACE para usar powerup P2
         if (Phaser.Input.Keyboard.JustDown(this.keys.space) && this.playerRole === 'player2') {
@@ -1040,7 +1040,7 @@ export class MultiplayerGameScene extends Phaser.Scene {
         }
     }
 
-    endRound() {
+    /*endRound() {
         this.isGameOver = true;
         this.sound.stopAll();
 
@@ -1193,7 +1193,7 @@ export class MultiplayerGameScene extends Phaser.Scene {
         // Teclado
         this.input.keyboard.once('keydown-ENTER', () => this.scene.start('LobbyScene'));
         this.input.keyboard.once('keydown-ESC', () => this.scene.start('MenuScene'));
-    }
+    }*/
 
     // ----------------------
     // Resume handler

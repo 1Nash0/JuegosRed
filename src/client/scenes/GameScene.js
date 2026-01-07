@@ -434,14 +434,14 @@ this.musicaNivel.play({ loop: true, volume: 0.5 });
     }
     this.scheduleNextPowerup();
 
-    // Si es P2 en juego local, usar el powerup al instante
+    /* Si es P2 en juego local, usar el powerup al instante
     if (playerId === 2) {
       try {
         this.usePowerupByPlayer(2);
       } catch (err) {
         console.warn('Failed to auto-use powerup for P2 (local):', err);
       }
-    }
+    }*/
 
     return true;
   }
