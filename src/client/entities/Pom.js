@@ -11,7 +11,7 @@ export class Pom extends Phaser.GameObjects.Image {
      this.setOrigin(0.5, 0.35);
 
         this.setScale(1.0);
-        this.setDepth(5);
+        this.setDepth(1000);
 
         scene.add.existing(this);
 

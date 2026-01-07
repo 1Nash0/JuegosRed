@@ -74,6 +74,7 @@ export class MultiplayerGameScene extends Phaser.Scene {
     }
 
     create() {
+        
         // Background & UI container
         this.add.rectangle(500, 300, 1000, 600, 0x1a1a2e);
         const bg = this.add.image(0, 0, 'fondo').setOrigin(0, 0);
@@ -85,6 +86,19 @@ export class MultiplayerGameScene extends Phaser.Scene {
         this.add.image(560, 320, 'agujero').setScale(0.5);
         this.add.image(680, 480, 'agujero').setScale(0.5);
         this.add.image(800, 320, 'agujero').setScale(0.5);
+
+        this.pin = new Pin(this, 'Topo', 400, 300);
+
+    if (this.playerRole === 'player2') {
+        this.martillo = new Pom(this, 'Martillo', 400, 300);
+        this.game.canvas.style.cursor = 'none';
+    }
+
+    if (this.playerRole === 'player1') {
+        this.input.on('pointerdown', pointer => {
+            this.handlePointerDown(pointer);
+        });
+    }
 
         // Sonido de fondo
         this.musicaNivel = this.sound.add('Musica_nivel');
@@ -99,8 +113,8 @@ export class MultiplayerGameScene extends Phaser.Scene {
             this.martillo = new Pom(
                 this,
                 'Martillo',
-                this.input.activePointer.x,
-                this.input.activePointer.y
+                this.input.activePointer.worldX,
+                this.input.activePointer.worldY
             );
         }
 
@@ -196,18 +210,19 @@ export class MultiplayerGameScene extends Phaser.Scene {
         }
 
         // Timer cuenta atrás
-        this.gameTimer = this.time.addEvent({
-            delay: 1000,
-            loop: true,
-            callback: () => {
-                if (this.isGameOver) return;
-                this.timeLeft--;
-                this.timerText.setText(this.formatTime(this.timeLeft));
-                if (this.timeLeft <= 0) {
-                    this.endRound();
-                }
-            }
-        });
+        // this.gameTimer = this.time.addEvent({
+        //     delay: 1000,
+        //     loop: true,
+        //     callback: () => {
+        //         if (this.isGameOver) return;
+        //         this.timeLeft--;
+        //         this.timerText.setText(this.formatTime(this.timeLeft));
+        //         if (this.timeLeft <= 0) {
+        //             this.endGame();
+        //         }
+        //     }
+        // });
+        
 
         // Aseguramos que los textos y UI estén sincronizados
         this.updateScoreUI();
@@ -254,9 +269,11 @@ export class MultiplayerGameScene extends Phaser.Scene {
                 break;
 
             case 'hammerHit':
-                // Process hammer hit
-                this.handleHammerHit(data.x, data.y);
-                break;
+                if (this.playerRole === 'player2') {
+                    this.handleHammerHit(data.x, data.y);
+                 }
+                 break;
+
 
             case 'powerupSpawn':
                 // Spawn powerup at hole
@@ -407,8 +424,8 @@ export class MultiplayerGameScene extends Phaser.Scene {
             if (this.isGameOver) return;
             if (this.topo.isActive && !this.pinBlocked) {
                 // Golpe exitoso -> punto para jugador 1 (Pom)
-                this.puntosPlayer1 += 1;
-                this.updateScoreUI();
+                // this.puntosPlayer1 += 1;
+                //this.updateScoreUI();
 
                 // Animar el martillo cuando golpea
                 if (this.martillo) {
@@ -751,12 +768,12 @@ export class MultiplayerGameScene extends Phaser.Scene {
         // Apply effect based on type
         if (powerupType === POWERUP_CLOCK) {
             // Aumentar tiempo
-            this.timeLeft += this.powerupAmount;
+            //this.timeLeft += this.powerupAmount;
             this.timerText.setText(this.formatTime(this.timeLeft));
         } else if (powerupType === POWERUP_THERMOMETER) {
             // Activar efecto del termómetro
             this.thermometerEffectActive = true;
-            this.pinBlocked = true;
+            //this.pinBlocked = true;
             //detener el tiempo
             this.gameTimer.paused = true;
 
@@ -840,7 +857,19 @@ export class MultiplayerGameScene extends Phaser.Scene {
     // Update loop
     // ----------------------
     update() {
-        if (this.isGameOver) return;
+        if (this.isGameOver){
+            return;
+        }
+        
+    if (this.isGameOver) return;
+
+    // 🔨 mover martillo con el ratón (SOLO P1)
+    if (this.playerRole === 'player1' && this.martillo) {
+        this.martillo.setPosition(
+            this.input.activePointer.worldX,
+            this.input.activePointer.worldY
+        );
+    }
 
         // Player 2 controls mole movement with keyboard
         if (this.playerRole === 'player2' && this.topo) {
@@ -1037,14 +1066,21 @@ export class MultiplayerGameScene extends Phaser.Scene {
     // Resume handler
     // ----------------------
     onResume() {
-        if (this.game && this.game.canvas && this.game.canvas.style) {
-            this.game.canvas.style.cursor = 'none';
-        }
-        // reactivar input pointer
-        if (this.playerRole === 'player1') {
-            this.input.on('pointerdown', (pointer) => this.handlePointerDown(pointer));
-        }
+    if (this.game && this.game.canvas && this.game.canvas.style) {
+        this.game.canvas.style.cursor = 'none';
     }
+
+    if (this.playerRole === 'player1') {
+        // 🔒 eliminamos cualquier listener previo
+        this.input.off('pointerdown');
+
+        // ✅ añadimos uno solo
+        this.input.on('pointerdown', (pointer) => {
+            this.handlePointerDown(pointer);
+        });
+    }
+}
+
 
     sendMessage(message) {
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
