@@ -515,6 +515,11 @@ this.powerupTextP2 = this.add.text(this.scale.width - 80, 80, `P2 Powerups: ${th
 
     // actualizar UI
     this.updatePowerupUI();
+
+    // return success for optimistic local use
+    return true;
+  }
+
   // ----------------------
   // UI update helpers
   // ----------------------
