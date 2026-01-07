@@ -162,7 +162,7 @@ export class MultiplayerGameScene extends Phaser.Scene {
         }).setOrigin(1.5, 0);
 
         // Role indicator
-        const roleText = this.playerRole === 'player1' ? 'You are Pom (Hammer)' : 'You are Pin (Mole)';
+        const roleText = this.playerRole === 'player1' ? 'Eres Pom (Martillo)' : 'Eres Pin (Castor)';
         this.add.text(400, 20, roleText, {
             fontSize: '16px',
             color: '#ffff00'
@@ -181,7 +181,7 @@ export class MultiplayerGameScene extends Phaser.Scene {
         });
 
         // Resume handler (cuando vuelves desde pausa)
-        this.events.on('resume', this.onResume, this);
+        this.events.on('Reanudar', this.onResume, this);
 
         // Crear topo (Pin)
         this.createTopos();
@@ -705,14 +705,7 @@ export class MultiplayerGameScene extends Phaser.Scene {
 
         const btnY = cy + 120;
 
-        createButton(
-            cx - 130,
-            btnY,
-            'Repetir',
-            0x88e1ff,
-            0x4fb0ff,
-            () => this.scene.restart()
-        );
+       
 
         createButton(
             cx + 130,
@@ -1197,7 +1190,7 @@ export class MultiplayerGameScene extends Phaser.Scene {
         );
 
         createButton(
-            cx + 130,
+            cx + 100,
             btnY,
             'Menú Principal',
             0xffdba8,

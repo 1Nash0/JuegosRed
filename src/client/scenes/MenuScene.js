@@ -118,12 +118,6 @@ export class MenuScene extends Phaser.Scene {
         // Cargar usuario guardado (si existe)
         this.loadStoredUser();
 
-        /*const onlineBtn = this.add.text(500, 390, 'Multijugador online (no disponible)', {
-            fontSize: '24px',
-            color: '#ff6666',
-        }).setOrigin(0.5);*/
-
-
         //ONLINE
 
         const onlineBtn = this.add.text(500, 370, 'Multijugador en Línea', {
@@ -136,6 +130,7 @@ export class MenuScene extends Phaser.Scene {
                 .on('pointerover', () => onlineBtn.setColor('#00fff7ff'))
                 .on('pointerout', () => onlineBtn.setColor('#892327'))
                 .on('pointerdown', () => {
+                    
                     // Require login before going online
                     if (!localStorage.getItem('playerUser')) {
                         alert('Necesitas iniciar sesión para jugar en línea');
