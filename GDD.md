@@ -117,7 +117,8 @@
 - Si se pierde la conexión:
   - Se pausa el juego
   - Se muestra una escena de reconexión
-- El servidor registra las conexiones y desconexiones mediante logs.
+- El servidor registra las conexiones en tiempo real mediante WebSockets,
+  quedando el servidor como autoridad del estado de la partida.
 
 ---
 
